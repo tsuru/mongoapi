@@ -1,5 +1,4 @@
-package mongoapi
-
+package main
 
 import (
 	. "launchpad.net/gocheck"
@@ -18,7 +17,6 @@ func (s *S) TestAddInstance(c *C) {
 	request, err := http.NewRequest("POST", "/resources/", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
-	err := AddInstance(recorder, request)
-	c.Assert(err, IsNil)
-	c.Assert(recorder.Code, Equals, 201)
+	AddInstance(recorder, request)
+	c.Assert(recorder.Code, Equals, http.StatusCreated)
 }
