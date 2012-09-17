@@ -19,7 +19,7 @@ func Bind(w http.ResponseWriter, r *http.Request) {
 	database.AddUser(name, "", false)
 	data := map[string]string{
 		"MONGO_URI":           "127.0.0.1:27017",
-		"MONGO_USER":          "myapp",
+		"MONGO_USER":          name,
 		"MONGO_PASSWORD":      "",
 		"MONGO_DATABASE_NAME": name,
 	}
