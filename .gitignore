@@ -23,3 +23,7 @@ _testmain.go
 
 # vim swap files
 *.sw[a-z]
+
+# mongoapi binary
+mongoapi
+main
