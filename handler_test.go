@@ -20,3 +20,11 @@ func (s *S) TestAddInstance(c *C) {
 	AddInstance(recorder, request)
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
 }
+
+func (s *S) TestRemoveInstance(c *C) {
+	request, err := http.NewRequest("DELETE", "/resources/name?:name=name", nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	RemoveInstance(recorder, request)
+	c.Assert(recorder.Code, Equals, http.StatusOK)
+}
