@@ -6,11 +6,11 @@ import (
 	"net/http"
 )
 
-func AddInstance(w http.ResponseWriter, r *http.Request) {
+func Add(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func BindInstance(w http.ResponseWriter, r *http.Request) {
+func Bind(w http.ResponseWriter, r *http.Request) {
 	data := map[string]string{
 		"MONGO_URI":           "127.0.0.1:27017",
 		"MONGO_USER":          "myapp",
@@ -22,6 +22,6 @@ func BindInstance(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func RemoveInstance(w http.ResponseWriter, r *http.Request) {
+func Remove(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
