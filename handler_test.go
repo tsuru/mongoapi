@@ -2,9 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
 	"net/http"
@@ -55,18 +53,23 @@ func (s *S) TestAdd(c *C) {
 }
 
 func (s *S) TestBindShouldReturnsTheVariables(c *C) {
-	request, err := http.NewRequest("POST", "/resources/someapp?:name=someapp", nil)
+	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	Bind(recorder, request)
+	defer func() {
+		database := Session.DB("myapp")
+		database.RemoveUser("myapp")
+		database.DropDatabase()
+	}()
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
 	result, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, IsNil)
 	expected := map[string]string{
 		"MONGO_URI":           "127.0.0.1:27017",
-		"MONGO_USER":          "someapp",
+		"MONGO_USER":          "myapp",
 		"MONGO_PASSWORD":      "",
-		"MONGO_DATABASE_NAME": "someapp",
+		"MONGO_DATABASE_NAME": "myapp",
 	}
 	data := map[string]string{}
 	json.Unmarshal(result, &data)
@@ -74,65 +77,79 @@ func (s *S) TestBindShouldReturnsTheVariables(c *C) {
 }
 
 func (s *S) TestBindShouldCreateTheDatabase(c *C) {
-	request, err := http.NewRequest("POST", "/resources/someapp?:name=someapp", nil)
+	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	Bind(recorder, request)
+	defer func() {
+		database := Session.DB("myapp")
+		database.RemoveUser("myapp")
+		database.DropDatabase()
+	}()
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
 	databases, err := Session.DatabaseNames()
-	c.Assert("someapp", In, databases)
+	c.Assert("myapp", In, databases)
 }
 
 func (s *S) TestBindShouldAddUserInTheDatabase(c *C) {
-	request, err := http.NewRequest("POST", "/resources/someapp?:name=someapp", nil)
+	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	Bind(recorder, request)
+	defer func() {
+		database := Session.DB("myapp")
+		database.RemoveUser("myapp")
+		database.DropDatabase()
+	}()
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
-	collection := Session.DB("someapp").C("system.users")
-	lenght, err := collection.Find(bson.M{"user": "someapp"}).Count()
+	collection := Session.DB("myapp").C("system.users")
+	lenght, err := collection.Find(bson.M{"user": "myapp"}).Count()
 	c.Assert(lenght, Equals, 1)
 }
 
 func (s *S) TestUnbindShouldRemoveTheUser(c *C) {
+	name := "myapp"
+	database := Session.DB(name)
+	database.AddUser(name, "", false)
+	defer func() {
+		database.DropDatabase()
+	}()
 	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10?:name=myapp&hostname=10.10.10.10", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	Unbind(recorder, request)
 	c.Assert(recorder.Code, Equals, http.StatusOK)
-	collection := Session.DB("myapp").C("system.users")
-	lenght, err := collection.Find(bson.M{"user": "myapp"}).Count()
+	collection := Session.DB(name).C("system.users")
+	lenght, err := collection.Find(bson.M{"user": name}).Count()
 	c.Assert(lenght, Equals, 0)
 }
 
 func (s *S) TestRemoveShouldRemovesTheDatabase(c *C) {
+	name := "myapp"
+	database := Session.DB(name)
+	database.AddUser(name, "", false)
 	request, err := http.NewRequest("DELETE", "/resources/name?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	Remove(recorder, request)
 	c.Assert(recorder.Code, Equals, http.StatusOK)
 	databases, err := Session.DatabaseNames()
-	c.Assert("myapp", Not(In), databases)
+	c.Assert(name, Not(In), databases)
 }
 
 func (s *S) TestStatus(c *C) {
-	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
+	name := "myapp"
+	database := Session.DB(name)
+	database.AddUser(name, "", false)
+	defer func() {
+		database.RemoveUser("myapp")
+		database.DropDatabase()
+	}()
+	request, err := http.NewRequest("GET", "/resources/myapp/status?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
-	Bind(recorder, request)
-
-	c.Assert(recorder.Code, Equals, http.StatusCreated)
-	request, err = http.NewRequest("GET", "/resources/myapp/status?:name=myapp", nil)
-	c.Assert(err, IsNil)
-	recorder = httptest.NewRecorder()
 	Status(recorder, request)
 	c.Assert(recorder.Code, Equals, http.StatusNoContent)
-
-	request, err = http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10?:name=myapp&hostname=10.10.10.10", nil)
-	c.Assert(err, IsNil)
-	recorder = httptest.NewRecorder()
-	Unbind(recorder, request)
-	c.Assert(recorder.Code, Equals, http.StatusOK)
 }
 
 func (s *S) TestStatusShouldReturns500WhenMongoIsNotUp(c *C) {
