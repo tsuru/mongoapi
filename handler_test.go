@@ -96,7 +96,6 @@ func (s *S) TestBindShouldAddUserInTheDatabase(c *C) {
 	session, err := mgo.Dial(uri)
 	c.Assert(err, IsNil)
 	collection := session.DB("someapp").C("system.users")
-	fmt.Println(collection)
 	lenght, err := collection.Find(bson.M{"user": "someapp"}).Count()
 	c.Assert(lenght, Equals, 1)
 }
@@ -107,6 +106,20 @@ func (s *S) TestUnbind(c *C) {
 	recorder := httptest.NewRecorder()
 	Unbind(recorder, request)
 	c.Assert(recorder.Code, Equals, http.StatusOK)
+}
+
+func (s *S) TestUnbindShouldRemoveTheUser(c *C) {
+	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10?:name=myapp&hostname=10.10.10.10", nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	Unbind(recorder, request)
+	c.Assert(recorder.Code, Equals, http.StatusOK)
+	uri := fmt.Sprintf("127.0.0.1:27017")
+	session, err := mgo.Dial(uri)
+	c.Assert(err, IsNil)
+	collection := session.DB("myapp").C("system.users")
+	lenght, err := collection.Find(bson.M{"user": "myapp"}).Count()
+	c.Assert(lenght, Equals, 0)
 }
 
 func (s *S) TestRemove(c *C) {
