@@ -38,6 +38,10 @@ func Unbind(w http.ResponseWriter, r *http.Request) {
 }
 
 func Remove(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get(":name")
+	uri := fmt.Sprintf("127.0.0.1:27017")
+	session, _ := mgo.Dial(uri)
+	session.DB(name).DropDatabase()
 	w.WriteHeader(http.StatusOK)
 }
 

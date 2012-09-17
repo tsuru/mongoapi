@@ -122,12 +122,17 @@ func (s *S) TestUnbindShouldRemoveTheUser(c *C) {
 	c.Assert(lenght, Equals, 0)
 }
 
-func (s *S) TestRemove(c *C) {
-	request, err := http.NewRequest("DELETE", "/resources/name?:name=name", nil)
+func (s *S) TestRemoveShouldRemovesTheDatabase(c *C) {
+	request, err := http.NewRequest("DELETE", "/resources/name?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	Remove(recorder, request)
 	c.Assert(recorder.Code, Equals, http.StatusOK)
+	uri := fmt.Sprintf("127.0.0.1:27017")
+	session, err := mgo.Dial(uri)
+	c.Assert(err, IsNil)
+	databases, err := session.DatabaseNames()
+	c.Assert("myapp", Not(In), databases)
 }
 
 func (s *S) TestStatus(c *C) {
