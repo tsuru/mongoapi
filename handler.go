@@ -29,3 +29,7 @@ func Unbind(w http.ResponseWriter, r *http.Request) {
 func Remove(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
+
+func Status(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNoContent)
+}

@@ -57,3 +57,11 @@ func (s *S) TestRemove(c *C) {
 	Remove(recorder, request)
 	c.Assert(recorder.Code, Equals, http.StatusOK)
 }
+
+func (s *S) TestStatus(c *C) {
+	request, err := http.NewRequest("GET", "/resources/myapp/status?:name=myapp", nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	Status(recorder, request)
+	c.Assert(recorder.Code, Equals, http.StatusNoContent)
+}
