@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	. "launchpad.net/gocheck"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +21,25 @@ func (s *S) TestAddInstance(c *C) {
 	recorder := httptest.NewRecorder()
 	AddInstance(recorder, request)
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
+}
+
+func (s *S) TestBindInstance(c *C) {
+	request, err := http.NewRequest("POST", "/resources/:name?:name=name", nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	BindInstance(recorder, request)
+	c.Assert(recorder.Code, Equals, http.StatusCreated)
+	result, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, IsNil)
+	expected := map[string]string{
+		"MONGO_URI":           "127.0.0.1:27017",
+		"MONGO_USER":          "",
+		"MONGO_PASSWORD":      "",
+		"MONGO_DATABASE_NAME": "name",
+	}
+	data := map[string]string{}
+	json.Unmarshal(result, &data)
+	c.Assert(data, DeepEquals, expected)
 }
 
 func (s *S) TestRemoveInstance(c *C) {
