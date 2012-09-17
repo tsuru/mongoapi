@@ -42,6 +42,14 @@ func (s *S) TestBind(c *C) {
 	c.Assert(data, DeepEquals, expected)
 }
 
+func (s *S) TestUnbind(c *C) {
+	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10?:name=myapp&hostname=10.10.10.10", nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	Unbind(recorder, request)
+	c.Assert(recorder.Code, Equals, http.StatusOK)
+}
+
 func (s *S) TestRemove(c *C) {
 	request, err := http.NewRequest("DELETE", "/resources/name?:name=name", nil)
 	c.Assert(err, IsNil)
