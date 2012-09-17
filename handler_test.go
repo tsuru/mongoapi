@@ -59,9 +59,29 @@ func (s *S) TestRemove(c *C) {
 }
 
 func (s *S) TestStatus(c *C) {
+	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	Bind(recorder, request)
+
+	c.Assert(recorder.Code, Equals, http.StatusCreated)
+	request, err = http.NewRequest("GET", "/resources/myapp/status?:name=myapp", nil)
+	c.Assert(err, IsNil)
+	recorder = httptest.NewRecorder()
+	Status(recorder, request)
+	c.Assert(recorder.Code, Equals, http.StatusNoContent)
+
+	request, err = http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10?:name=myapp&hostname=10.10.10.10", nil)
+	c.Assert(err, IsNil)
+	recorder = httptest.NewRecorder()
+	Unbind(recorder, request)
+	c.Assert(recorder.Code, Equals, http.StatusOK)
+}
+
+func (s *S) TestStatusShouldReturns500WhenMongoIsNotUp(c *C) {
 	request, err := http.NewRequest("GET", "/resources/myapp/status?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	Status(recorder, request)
-	c.Assert(recorder.Code, Equals, http.StatusNoContent)
+	c.Assert(recorder.Code, Equals, http.StatusInternalServerError)
 }
