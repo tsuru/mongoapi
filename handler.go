@@ -13,9 +13,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 func Bind(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get(":name")
-	uri := fmt.Sprintf("127.0.0.1:27017")
-	session, _ := mgo.Dial(uri)
-	database := session.DB(name)
+	database := Session.DB(name)
 	database.AddUser(name, "", false)
 	data := map[string]string{
 		"MONGO_URI":           "127.0.0.1:27017",
@@ -30,18 +28,14 @@ func Bind(w http.ResponseWriter, r *http.Request) {
 
 func Unbind(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get(":name")
-	uri := fmt.Sprintf("127.0.0.1:27017")
-	session, _ := mgo.Dial(uri)
-	database := session.DB(name)
+	database := Session.DB(name)
 	database.RemoveUser(name)
 	w.WriteHeader(http.StatusOK)
 }
 
 func Remove(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get(":name")
-	uri := fmt.Sprintf("127.0.0.1:27017")
-	session, _ := mgo.Dial(uri)
-	session.DB(name).DropDatabase()
+	Session.DB(name).DropDatabase()
 	w.WriteHeader(http.StatusOK)
 }
 
