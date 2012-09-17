@@ -13,7 +13,7 @@ func AddInstance(w http.ResponseWriter, r *http.Request) {
 func BindInstance(w http.ResponseWriter, r *http.Request) {
 	data := map[string]string{
 		"MONGO_URI":           "127.0.0.1:27017",
-		"MONGO_USER":          "",
+		"MONGO_USER":          "myapp",
 		"MONGO_PASSWORD":      "",
 		"MONGO_DATABASE_NAME": r.URL.Query().Get(":name"),
 	}

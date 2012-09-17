@@ -24,7 +24,7 @@ func (s *S) TestAddInstance(c *C) {
 }
 
 func (s *S) TestBindInstance(c *C) {
-	request, err := http.NewRequest("POST", "/resources/:name?:name=name", nil)
+	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	BindInstance(recorder, request)
@@ -33,9 +33,9 @@ func (s *S) TestBindInstance(c *C) {
 	c.Assert(err, IsNil)
 	expected := map[string]string{
 		"MONGO_URI":           "127.0.0.1:27017",
-		"MONGO_USER":          "",
+		"MONGO_USER":          "myapp",
 		"MONGO_PASSWORD":      "",
-		"MONGO_DATABASE_NAME": "name",
+		"MONGO_DATABASE_NAME": "myapp",
 	}
 	data := map[string]string{}
 	json.Unmarshal(result, &data)
