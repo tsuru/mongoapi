@@ -58,7 +58,8 @@ func (s *S) TestBindShouldReturnsTheVariables(c *C) {
 	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
-	Bind(recorder, request)
+	err = Bind(recorder, request)
+	c.Assert(err, IsNil)
 	defer func() {
 		database := Session.DB("myapp")
 		database.RemoveUser("myapp")
@@ -82,7 +83,8 @@ func (s *S) TestBindShouldCreateTheDatabase(c *C) {
 	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
-	Bind(recorder, request)
+	err = Bind(recorder, request)
+	c.Assert(err, IsNil)
 	defer func() {
 		database := Session.DB("myapp")
 		database.RemoveUser("myapp")
@@ -97,7 +99,8 @@ func (s *S) TestBindShouldAddUserInTheDatabase(c *C) {
 	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
-	Bind(recorder, request)
+	err = Bind(recorder, request)
+	c.Assert(err, IsNil)
 	defer func() {
 		database := Session.DB("myapp")
 		database.RemoveUser("myapp")

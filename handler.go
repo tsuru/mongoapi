@@ -11,19 +11,26 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func Bind(w http.ResponseWriter, r *http.Request) {
+func Bind(w http.ResponseWriter, r *http.Request) error {
 	name := r.URL.Query().Get(":name")
 	database := Session.DB(name)
-	database.AddUser(name, "", false)
+	err := database.AddUser(name, "", false)
+	if err != nil {
+		return err
+	}
 	data := map[string]string{
 		"MONGO_URI":           "127.0.0.1:27017",
 		"MONGO_USER":          name,
 		"MONGO_PASSWORD":      "",
 		"MONGO_DATABASE_NAME": name,
 	}
-	b, _ := json.Marshal(&data)
+	b, err := json.Marshal(&data)
+	if err != nil {
+		return err
+	}
 	fmt.Fprint(w, string(b))
 	w.WriteHeader(http.StatusCreated)
+	return nil
 }
 
 func Unbind(w http.ResponseWriter, r *http.Request) {
