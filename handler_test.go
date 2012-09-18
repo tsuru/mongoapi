@@ -155,7 +155,8 @@ func (s *S) TestStatus(c *C) {
 	request, err := http.NewRequest("GET", "/resources/myapp/status?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
-	Status(recorder, request)
+	err = Status(recorder, request)
+	c.Assert(err, IsNil)
 	c.Assert(recorder.Code, Equals, http.StatusNoContent)
 }
 
@@ -163,8 +164,10 @@ func (s *S) TestStatusShouldReturns500WhenMongoIsNotUp(c *C) {
 	request, err := http.NewRequest("GET", "/resources/myapp/status?:name=myapp", nil)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
-	Status(recorder, request)
-	c.Assert(recorder.Code, Equals, http.StatusInternalServerError)
+	err = Status(recorder, request)
+	c.Assert(err, NotNil)
+	fmt.Println(err.Error())
+	c.Assert(err, ErrorMatches, "^auth fails$")
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request) error {

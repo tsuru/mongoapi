@@ -12,6 +12,6 @@ func main() {
 	m.Post("/resources/:name", Handler(Bind))
 	m.Del("/resources/:name/hostname/:hostname", Handler(Unbind))
 	m.Del("/resources/:name", Handler(Remove))
-	m.Get("/resources/:name/status", http.HandlerFunc(Status))
+	m.Get("/resources/:name/status", Handler(Status))
 	log.Fatal(http.ListenAndServe(":3333", m))
 }

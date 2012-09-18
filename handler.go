@@ -54,15 +54,15 @@ func Remove(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func Status(w http.ResponseWriter, r *http.Request) {
+func Status(w http.ResponseWriter, r *http.Request) error {
 	name := r.URL.Query().Get(":name")
 	uri := fmt.Sprintf("%s:@127.0.0.1:27017/%s", name, name)
 	_, err := mgo.Dial(uri)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return err
 	}
 	w.WriteHeader(http.StatusNoContent)
+	return nil
 }
 
 type Handler func(http.ResponseWriter, *http.Request) error
