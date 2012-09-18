@@ -1,11 +1,20 @@
 package main
 
 import (
+	"code.google.com/p/go.crypto/pbkdf2"
+	"crypto/sha512"
 	"encoding/json"
 	"fmt"
 	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
 	"net/http"
 )
+
+func newPassword() string {
+	password := bson.NewObjectId().Hex()
+	salt := []byte("mongoapi")
+	return fmt.Sprintf("%x", pbkdf2.Key([]byte(password), salt, 4096, len(salt)*8, sha512.New))
+}
 
 func Add(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
@@ -21,7 +30,7 @@ func Bind(w http.ResponseWriter, r *http.Request) error {
 	data := map[string]string{
 		"MONGO_URI":           "127.0.0.1:27017",
 		"MONGO_USER":          name,
-		"MONGO_PASSWORD":      "",
+		"MONGO_PASSWORD":      newPassword(),
 		"MONGO_DATABASE_NAME": name,
 	}
 	b, err := json.Marshal(&data)

@@ -76,7 +76,10 @@ func (s *S) TestBindShouldReturnsTheVariables(c *C) {
 	}
 	data := map[string]string{}
 	json.Unmarshal(result, &data)
-	c.Assert(data, DeepEquals, expected)
+	c.Assert(data["MONGO_URI"], Equals, expected["MONGO_URI"])
+	c.Assert(data["MONGO_USER"], Equals, expected["MONGO_USER"])
+	c.Assert(data["MONGO_DATABASE_NAME"], Equals, expected["MONGO_DATABASE_NAME"])
+	c.Assert(data["MONGO_PASSWORD"], Not(HasLen), 0)
 }
 
 func (s *S) TestBindShouldCreateTheDatabase(c *C) {
