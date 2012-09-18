@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	stderrors "errors"
+	"fmt"
 	"io/ioutil"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
@@ -158,4 +160,33 @@ func (s *S) TestStatusShouldReturns500WhenMongoIsNotUp(c *C) {
 	recorder := httptest.NewRecorder()
 	Status(recorder, request)
 	c.Assert(recorder.Code, Equals, http.StatusInternalServerError)
+}
+
+func errorHandler(w http.ResponseWriter, r *http.Request) error {
+	return stderrors.New("some error")
+}
+
+func simpleHandler(w http.ResponseWriter, r *http.Request) error {
+	fmt.Fprint(w, "success")
+	return nil
+}
+
+func (s *S) TestHandlerReturns500WhenInternalHandlerReturnsAnError(c *C) {
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest("GET", "/apps", nil)
+	c.Assert(err, IsNil)
+
+	Handler(errorHandler).ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, Equals, 500)
+	c.Assert(recorder.Body.String(), Equals, "some error\n")
+}
+
+func (s *S) TestHandlerShouldPassAnHandlerWithoutError(c *C) {
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest("GET", "/apps", nil)
+	c.Assert(err, IsNil)
+
+	Handler(simpleHandler).ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, Equals, 200)
+	c.Assert(recorder.Body.String(), Equals, "success")
 }
