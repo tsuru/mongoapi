@@ -55,9 +55,7 @@ func Remove(w http.ResponseWriter, r *http.Request) error {
 }
 
 func Status(w http.ResponseWriter, r *http.Request) error {
-	name := r.URL.Query().Get(":name")
-	uri := fmt.Sprintf("%s:@127.0.0.1:27017/%s", name, name)
-	_, err := mgo.Dial(uri)
+	_, err := mgo.Dial("localhost:27017")
 	if err != nil {
 		return err
 	}
