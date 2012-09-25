@@ -11,10 +11,20 @@ import (
 	"os"
 )
 
+var Localhost = "localhost:27017"
+
 func newPassword() string {
 	password := bson.NewObjectId().Hex()
 	salt := []byte("mongoapi")
 	return fmt.Sprintf("%x", pbkdf2.Key([]byte(password), salt, 4096, len(salt)*8, sha512.New))
+}
+
+func host() string {
+	host := os.Getenv("PUBLIC_HOST")
+	if host == "" {
+		host = Localhost
+	}
+	return host
 }
 
 func Add(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +39,7 @@ func Bind(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	data := map[string]string{
-		"MONGO_URI":           os.Getenv("PUBLIC_HOST"),
+		"MONGO_URI":           host(),
 		"MONGO_USER":          name,
 		"MONGO_PASSWORD":      newPassword(),
 		"MONGO_DATABASE_NAME": name,
@@ -65,7 +75,7 @@ func Remove(w http.ResponseWriter, r *http.Request) error {
 }
 
 func Status(w http.ResponseWriter, r *http.Request) error {
-	_, err := mgo.Dial("localhost:27017")
+	_, err := mgo.Dial(Localhost)
 	if err != nil {
 		return err
 	}

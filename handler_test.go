@@ -55,6 +55,46 @@ func (s *S) TestAdd(c *C) {
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
 }
 
+func (s *S) TestHostShouldReturnsPublicHostFromEnviron(c *C) {
+	publicHost := "publichost"
+	os.Setenv("PUBLIC_HOST", publicHost)
+	c.Assert(host(), Equals, publicHost)
+}
+
+func (s *S) TestHostShouldReturnsLocalhostWhenPublicHostEnvIsNil(c *C) {
+	os.Setenv("PUBLIC_HOST", "")
+	c.Assert(host(), Equals, Localhost)
+}
+
+func (s *S) TestBindShouldReturnsLocalhostWhenThePublicHostEnvIsNil(c *C) {
+	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
+	os.Setenv("PUBLIC_HOST", "")
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	err = Bind(recorder, request)
+	c.Assert(err, IsNil)
+	defer func() {
+		database := Session.DB("myapp")
+		database.RemoveUser("myapp")
+		database.DropDatabase()
+	}()
+	c.Assert(recorder.Code, Equals, http.StatusCreated)
+	result, err := ioutil.ReadAll(recorder.Body)
+	c.Assert(err, IsNil)
+	expected := map[string]string{
+		"MONGO_URI":           Localhost,
+		"MONGO_USER":          "myapp",
+		"MONGO_PASSWORD":      "",
+		"MONGO_DATABASE_NAME": "myapp",
+	}
+	data := map[string]string{}
+	json.Unmarshal(result, &data)
+	c.Assert(data["MONGO_URI"], Equals, expected["MONGO_URI"])
+	c.Assert(data["MONGO_USER"], Equals, expected["MONGO_USER"])
+	c.Assert(data["MONGO_DATABASE_NAME"], Equals, expected["MONGO_DATABASE_NAME"])
+	c.Assert(data["MONGO_PASSWORD"], Not(HasLen), 0)
+}
+
 func (s *S) TestBindShouldReturnsTheVariables(c *C) {
 	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	publicHost := "mongoapi.com:27017"
