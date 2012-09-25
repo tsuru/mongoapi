@@ -1,0 +1,10 @@
+mongoapi
+
+This service is used for mongo binding.
+
+Once binded, you will be able to use the following environment variables:
+
+    - MONGO_URI
+    - MONGO_USER
+    - MONGO_PASSWORD
+    - MONGO_DATABASE_NAME
