@@ -9,6 +9,7 @@ import (
 	. "launchpad.net/gocheck"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -56,6 +57,8 @@ func (s *S) TestAdd(c *C) {
 
 func (s *S) TestBindShouldReturnsTheVariables(c *C) {
 	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
+	publicHost := "mongoapi.com:27017"
+	os.Setenv("PUBLIC_HOST", publicHost)
 	c.Assert(err, IsNil)
 	recorder := httptest.NewRecorder()
 	err = Bind(recorder, request)
@@ -69,7 +72,7 @@ func (s *S) TestBindShouldReturnsTheVariables(c *C) {
 	result, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, IsNil)
 	expected := map[string]string{
-		"MONGO_URI":           "127.0.0.1:27017",
+		"MONGO_URI":           publicHost,
 		"MONGO_USER":          "myapp",
 		"MONGO_PASSWORD":      "",
 		"MONGO_DATABASE_NAME": "myapp",

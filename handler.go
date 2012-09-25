@@ -8,6 +8,7 @@ import (
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"net/http"
+	"os"
 )
 
 func newPassword() string {
@@ -28,7 +29,7 @@ func Bind(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	data := map[string]string{
-		"MONGO_URI":           "127.0.0.1:27017",
+		"MONGO_URI":           os.Getenv("PUBLIC_HOST"),
 		"MONGO_USER":          name,
 		"MONGO_PASSWORD":      newPassword(),
 		"MONGO_DATABASE_NAME": name,
