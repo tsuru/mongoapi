@@ -48,9 +48,9 @@ func Bind(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(w, string(b))
 	w.WriteHeader(http.StatusCreated)
-	return nil
+	_, err = w.Write(b)
+	return err
 }
 
 func Unbind(w http.ResponseWriter, r *http.Request) error {
