@@ -1,0 +1,10 @@
+language: go
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install bzr mercurial -qq
+install:
+  - go get -u ./...
+  - go get launchpad.net/gocheck
+script:
+  - go test
+services: mongodb
