@@ -9,26 +9,14 @@ import (
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
-	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	"net/http"
-	"os"
 )
-
-var Localhost = "localhost:27017"
 
 func newPassword() string {
 	password := bson.NewObjectId().Hex()
 	salt := []byte("mongoapi")
 	return fmt.Sprintf("%x", pbkdf2.Key([]byte(password), salt, 4096, len(salt)*8, sha512.New))
-}
-
-func host() string {
-	host := os.Getenv("PUBLIC_HOST")
-	if host == "" {
-		host = Localhost
-	}
-	return host
 }
 
 func Add(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +31,7 @@ func Bind(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	data := map[string]string{
-		"MONGO_URI":           host(),
+		"MONGO_URI":           coalesceEnv("127.0.0.1:27017", "MONGODB_PUBLIC_URI", "MONGODB_URI"),
 		"MONGO_USER":          name,
 		"MONGO_PASSWORD":      newPassword(),
 		"MONGO_DATABASE_NAME": name,
@@ -79,8 +67,7 @@ func Remove(w http.ResponseWriter, r *http.Request) error {
 }
 
 func Status(w http.ResponseWriter, r *http.Request) error {
-	_, err := mgo.Dial(Localhost)
-	if err != nil {
+	if err := session().Ping(); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)
