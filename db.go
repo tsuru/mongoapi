@@ -4,14 +4,46 @@
 
 package main
 
-import "labix.org/v2/mgo"
+import (
+	"labix.org/v2/mgo"
+	"os"
+)
 
-var Session *mgo.Session
+var sess *mgo.Session
 
-func init() {
-	var err error
-	Session, err = mgo.Dial("localhost:27017")
-	if err != nil {
-		panic(err)
+func session() (s *mgo.Session) {
+	var connect = func() *mgo.Session {
+		var err error
+		uri := coalesceEnv("127.0.0.1:27017", "MONGODB_URI")
+		session, err := mgo.Dial(uri)
+		if err != nil {
+			panic(err)
+		}
+		return session
 	}
+	if sess == nil {
+		sess = connect()
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			sess = connect()
+			s = sess
+		}
+	}()
+	err := sess.Ping()
+	if err != nil {
+		sess = connect()
+	}
+	return sess
+}
+
+// coalesceEnv returns the value of the first environment variable in the list
+// that is not empty, or the default value.
+func coalesceEnv(defaultValue string, envs ...string) string {
+	for _, e := range envs {
+		if value := os.Getenv(e); value != "" {
+			return value
+		}
+	}
+	return defaultValue
 }

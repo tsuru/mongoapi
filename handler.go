@@ -37,7 +37,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 
 func Bind(w http.ResponseWriter, r *http.Request) error {
 	name := r.URL.Query().Get(":name")
-	database := Session.DB(name)
+	database := session().DB(name)
 	err := database.AddUser(name, "", false)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func Bind(w http.ResponseWriter, r *http.Request) error {
 
 func Unbind(w http.ResponseWriter, r *http.Request) error {
 	name := r.URL.Query().Get(":name")
-	database := Session.DB(name)
+	database := session().DB(name)
 	err := database.RemoveUser(name)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func Unbind(w http.ResponseWriter, r *http.Request) error {
 
 func Remove(w http.ResponseWriter, r *http.Request) error {
 	name := r.URL.Query().Get(":name")
-	err := Session.DB(name).DropDatabase()
+	err := session().DB(name).DropDatabase()
 	if err != nil {
 		return err
 	}

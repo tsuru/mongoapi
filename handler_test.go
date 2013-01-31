@@ -78,7 +78,7 @@ func (s *S) TestBindShouldReturnsLocalhostWhenThePublicHostEnvIsNil(c *C) {
 	err = Bind(recorder, request)
 	c.Assert(err, IsNil)
 	defer func() {
-		database := Session.DB("myapp")
+		database := session().DB("myapp")
 		database.RemoveUser("myapp")
 		database.DropDatabase()
 	}()
@@ -108,7 +108,7 @@ func (s *S) TestBindShouldReturnsTheVariables(c *C) {
 	err = Bind(recorder, request)
 	c.Assert(err, IsNil)
 	defer func() {
-		database := Session.DB("myapp")
+		database := session().DB("myapp")
 		database.RemoveUser("myapp")
 		database.DropDatabase()
 	}()
@@ -136,12 +136,12 @@ func (s *S) TestBindShouldCreateTheDatabase(c *C) {
 	err = Bind(recorder, request)
 	c.Assert(err, IsNil)
 	defer func() {
-		database := Session.DB("myapp")
+		database := session().DB("myapp")
 		database.RemoveUser("myapp")
 		database.DropDatabase()
 	}()
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
-	databases, err := Session.DatabaseNames()
+	databases, err := session().DatabaseNames()
 	c.Assert("myapp", In, databases)
 }
 
@@ -152,19 +152,19 @@ func (s *S) TestBindShouldAddUserInTheDatabase(c *C) {
 	err = Bind(recorder, request)
 	c.Assert(err, IsNil)
 	defer func() {
-		database := Session.DB("myapp")
+		database := session().DB("myapp")
 		database.RemoveUser("myapp")
 		database.DropDatabase()
 	}()
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
-	collection := Session.DB("myapp").C("system.users")
+	collection := session().DB("myapp").C("system.users")
 	lenght, err := collection.Find(bson.M{"user": "myapp"}).Count()
 	c.Assert(lenght, Equals, 1)
 }
 
 func (s *S) TestUnbindShouldRemoveTheUser(c *C) {
 	name := "myapp"
-	database := Session.DB(name)
+	database := session().DB(name)
 	database.AddUser(name, "", false)
 	defer func() {
 		database.DropDatabase()
@@ -175,14 +175,14 @@ func (s *S) TestUnbindShouldRemoveTheUser(c *C) {
 	err = Unbind(recorder, request)
 	c.Assert(err, IsNil)
 	c.Assert(recorder.Code, Equals, http.StatusOK)
-	collection := Session.DB(name).C("system.users")
+	collection := session().DB(name).C("system.users")
 	lenght, err := collection.Find(bson.M{"user": name}).Count()
 	c.Assert(lenght, Equals, 0)
 }
 
 func (s *S) TestRemoveShouldRemovesTheDatabase(c *C) {
 	name := "myapp"
-	database := Session.DB(name)
+	database := session().DB(name)
 	database.AddUser(name, "", false)
 	request, err := http.NewRequest("DELETE", "/resources/name?:name=myapp", nil)
 	c.Assert(err, IsNil)
@@ -190,13 +190,13 @@ func (s *S) TestRemoveShouldRemovesTheDatabase(c *C) {
 	err = Remove(recorder, request)
 	c.Assert(err, IsNil)
 	c.Assert(recorder.Code, Equals, http.StatusOK)
-	databases, err := Session.DatabaseNames()
+	databases, err := session().DatabaseNames()
 	c.Assert(name, Not(In), databases)
 }
 
 func (s *S) TestStatus(c *C) {
 	name := "myapp"
-	database := Session.DB(name)
+	database := session().DB(name)
 	database.AddUser(name, "", false)
 	defer func() {
 		database.RemoveUser("myapp")
