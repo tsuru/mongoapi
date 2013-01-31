@@ -74,17 +74,11 @@ func (s *S) TestBindShouldReturnsLocalhostWhenThePublicHostEnvIsNil(c *C) {
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
 	result, err := ioutil.ReadAll(recorder.Body)
 	c.Assert(err, IsNil)
-	expected := map[string]string{
-		"MONGO_URI":           "127.0.0.1:27017",
-		"MONGO_USER":          "myapp",
-		"MONGO_PASSWORD":      "",
-		"MONGO_DATABASE_NAME": "myapp",
-	}
 	data := map[string]string{}
 	json.Unmarshal(result, &data)
-	c.Assert(data["MONGO_URI"], Equals, expected["MONGO_URI"])
-	c.Assert(data["MONGO_USER"], Equals, expected["MONGO_USER"])
-	c.Assert(data["MONGO_DATABASE_NAME"], Equals, expected["MONGO_DATABASE_NAME"])
+	c.Assert(data["MONGO_URI"], Equals, "127.0.0.1:27017")
+	c.Assert(data["MONGO_USER"], Equals, "myapp")
+	c.Assert(data["MONGO_DATABASE_NAME"], Equals, "myapp")
 	c.Assert(data["MONGO_PASSWORD"], Not(HasLen), 0)
 }
 
