@@ -3,11 +3,7 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install bzr mercurial -qq
 install:
-  - go get -u ./...
-  - go get launchpad.net/gocheck
-before_script:
-  - mkdir -p $GOPATH/src/github.com/globocom/mongoapi
-  - mv * $GOPATH/src/github.com/globocom/mongoapi/
+  - go get github.com/globocom/mongoapi launchpad.net/gocheck
 script:
   - go test github.com/globocom/mongoapi
 services: mongodb
