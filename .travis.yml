@@ -5,6 +5,9 @@ before_install:
 install:
   - go get -u ./...
   - go get launchpad.net/gocheck
+before_script:
+  - mkdir -p $GOPATH/src/github.com/globocom/mongoapi
+  - mv * $GOPATH/src/github.com/globocom/mongoapi/
 script:
-  - go test
+  - go test github.com/globocom/mongoapi
 services: mongodb
