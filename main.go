@@ -17,5 +17,6 @@ func main() {
 	m.Del("/resources/:name/hostname/:hostname", Handler(Unbind))
 	m.Del("/resources/:name", Handler(Remove))
 	m.Get("/resources/:name/status", Handler(Status))
-	log.Fatal(http.ListenAndServe(":3333", m))
+	listen := coalesceEnv("0.0.0.0:3333", "MONGODB_API_LISTEN")
+	log.Fatal(http.ListenAndServe(listen, m))
 }
