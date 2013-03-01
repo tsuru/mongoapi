@@ -1,6 +1,6 @@
 mongoapi
 
-This service is used for mongo binding.
+This service is used for MongoDB binding.
 
 Once binded, you will be able to use the following environment variables:
 
