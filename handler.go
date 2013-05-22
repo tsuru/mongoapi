@@ -5,7 +5,7 @@
 package main
 
 import (
-	"code.google.com/p/go.crypto/pbkdf2"
+	"crypto/rand"
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
@@ -14,9 +14,12 @@ import (
 )
 
 func newPassword() string {
-	password := bson.NewObjectId().Hex()
-	salt := []byte("mongoapi")
-	return fmt.Sprintf("%x", pbkdf2.Key([]byte(password), salt, 4096, len(salt)*8, sha512.New))
+	var random [32]byte
+	rand.Read(random[:])
+	h := sha512.New()
+	h.Sum([]byte(bson.NewObjectId().Hex()))
+	h.Sum(random[:])
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 func Add(w http.ResponseWriter, r *http.Request) {
