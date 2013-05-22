@@ -27,16 +27,17 @@ func Add(w http.ResponseWriter, r *http.Request) {
 }
 
 func Bind(w http.ResponseWriter, r *http.Request) error {
+	password := newPassword()
 	name := r.URL.Query().Get(":name")
 	database := session().DB(name)
-	err := database.AddUser(name, "", false)
+	err := database.AddUser(name, password, false)
 	if err != nil {
 		return err
 	}
 	data := map[string]string{
 		"MONGO_URI":           coalesceEnv("127.0.0.1:27017", "MONGODB_PUBLIC_URI", "MONGODB_URI"),
 		"MONGO_USER":          name,
-		"MONGO_PASSWORD":      newPassword(),
+		"MONGO_PASSWORD":      password,
 		"MONGO_DATABASE_NAME": name,
 	}
 	b, err := json.Marshal(&data)
