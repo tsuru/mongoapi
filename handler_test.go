@@ -82,7 +82,7 @@ func (s *S) TestBindShouldReturnsLocalhostWhenThePublicHostEnvIsNil(c *C) {
 	c.Assert(data["MONGO_PASSWORD"], Not(HasLen), 0)
 }
 
-func (s *S) TestBindShouldReturnsTheVariables(c *C) {
+func (s *S) TestBindShouldReturnTheVariables(c *C) {
 	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	publicHost := "mongoapi.com:27017"
 	os.Setenv("MONGODB_PUBLIC_URI", publicHost)
