@@ -14,3 +14,5 @@ following environment variables:
   should use. _Default value:_ 127.0.0.1:27017.
 * **MONGODB_PUBLIC_URI**: URI in the format <host>:<port> used to access the
   MongoDB server externally. _Default value:_ the value of ``MONGODB_URI``.
+* **MONGODB_REPLICA_SET**: name of the replica set in use. It's optional, when
+  ommited, the API won't use a replica set.
