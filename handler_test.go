@@ -82,6 +82,27 @@ func (s *S) TestBindShouldReturnsLocalhostWhenThePublicHostEnvIsNil(c *C) {
 	c.Assert(data["MONGO_PASSWORD"], Not(HasLen), 0)
 }
 
+func (s *S) TestBindWithReplicaSet(c *C) {
+	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
+	publicHost := "mongoapi.com:27017"
+	os.Setenv("MONGODB_PUBLIC_URI", publicHost)
+	os.Setenv("MONGODB_REPLICA_SET", "tsuru")
+	c.Assert(err, IsNil)
+	recorder := httptest.NewRecorder()
+	err = Bind(recorder, request)
+	c.Assert(err, IsNil)
+	defer func() {
+		database := session().DB("myapp")
+		database.RemoveUser("myapp")
+		database.DropDatabase()
+	}()
+	c.Assert(recorder.Code, Equals, http.StatusCreated)
+	var data map[string]string
+	err = json.NewDecoder(recorder.Body).Decode(&data)
+	c.Assert(err, IsNil)
+	c.Assert(data["MONGO_REPLICA_SET"], Equals, "tsuru")
+}
+
 func (s *S) TestBindShouldReturnTheVariables(c *C) {
 	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	publicHost := "mongoapi.com:27017"

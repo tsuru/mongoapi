@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"labix.org/v2/mgo/bson"
 	"net/http"
+	"os"
 )
 
 func newPassword() string {
@@ -39,6 +40,9 @@ func Bind(w http.ResponseWriter, r *http.Request) error {
 		"MONGO_USER":          name,
 		"MONGO_PASSWORD":      password,
 		"MONGO_DATABASE_NAME": name,
+	}
+	if rs := os.Getenv("MONGODB_REPLICA_SET"); rs != "" {
+		data["MONGO_REPLICA_SET"] = rs
 	}
 	b, err := json.Marshal(&data)
 	if err != nil {
