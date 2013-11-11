@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"labix.org/v2/mgo/bson"
 	"net/http"
-	"os"
 )
 
 func newPassword() string {
@@ -34,29 +33,15 @@ func Add(w http.ResponseWriter, r *http.Request) {
 }
 
 func Bind(w http.ResponseWriter, r *http.Request) error {
-	password := newPassword()
 	name := r.URL.Query().Get(":name")
-	database := session().DB(name)
-	err := database.AddUser(name, password, false)
-	if err != nil {
-		return err
-	}
-	data := map[string]string{
-		"MONGO_URI":           coalesceEnv("127.0.0.1:27017", "MONGODB_PUBLIC_URI", "MONGODB_URI"),
-		"MONGO_USER":          name,
-		"MONGO_PASSWORD":      password,
-		"MONGO_DATABASE_NAME": name,
-	}
-	if rs := os.Getenv("MONGODB_REPLICA_SET"); rs != "" {
-		data["MONGO_REPLICA_SET"] = rs
-	}
-	b, err := json.Marshal(&data)
+	appHost := r.FormValue("app-host")
+	unitHost := r.FormValue("unit-host")
+	env, err := bind(name, appHost, unitHost)
 	if err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write(b)
-	return err
+	return json.NewEncoder(w).Encode(env)
 }
 
 func Unbind(w http.ResponseWriter, r *http.Request) error {
