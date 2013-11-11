@@ -59,7 +59,7 @@ func (s *S) TestAdd(c *C) {
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
 }
 
-func (s *S) TestBindShouldReturnsLocalhostWhenThePublicHostEnvIsNil(c *C) {
+func (s *S) TestBindShouldReturnLocalhostWhenThePublicHostEnvIsNil(c *C) {
 	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", nil)
 	os.Setenv("MONGODB_PUBLIC_URI", "")
 	c.Assert(err, IsNil)
