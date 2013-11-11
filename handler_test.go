@@ -243,6 +243,30 @@ func (s *S) TestBindShouldAddUserInTheDatabase(c *gocheck.C) {
 	c.Assert(lenght, gocheck.Equals, 1)
 }
 
+func (s *S) TestBindNoAppHost(c *gocheck.C) {
+	body := strings.NewReader("unit-host=127.0.0.1")
+	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
+	c.Assert(err, gocheck.IsNil)
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	recorder := httptest.NewRecorder()
+	err = Bind(recorder, request)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), gocheck.Equals, "Missing app-host")
+}
+
+func (s *S) TestBindNoUnitHost(c *gocheck.C) {
+	body := strings.NewReader("app-host=localhost")
+	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
+	c.Assert(err, gocheck.IsNil)
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	recorder := httptest.NewRecorder()
+	err = Bind(recorder, request)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), gocheck.Equals, "Missing unit-host")
+}
+
 func (s *S) TestUnbindShouldRemoveTheUser(c *gocheck.C) {
 	name := "myapp"
 	database := session().DB(name)

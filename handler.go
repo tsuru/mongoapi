@@ -35,7 +35,17 @@ func Add(w http.ResponseWriter, r *http.Request) {
 func Bind(w http.ResponseWriter, r *http.Request) error {
 	name := r.URL.Query().Get(":name")
 	appHost := r.FormValue("app-host")
+	if appHost == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "Missing app-host")
+		return nil
+	}
 	unitHost := r.FormValue("unit-host")
+	if unitHost == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "Missing unit-host")
+		return nil
+	}
 	env, err := bind(name, appHost, unitHost)
 	if err != nil {
 		return err
