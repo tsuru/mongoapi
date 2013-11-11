@@ -51,3 +51,7 @@ func coalesceEnv(defaultValue string, envs ...string) string {
 func dbName() string {
 	return coalesceEnv("mongoapi", "MONGOAPI_DBNAME")
 }
+
+func collection() *mgo.Collection {
+	return session().DB(dbName()).C("bind")
+}

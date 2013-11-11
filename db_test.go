@@ -70,3 +70,10 @@ func (s *S) TestDBNameEnvVar(c *gocheck.C) {
 	defer os.Setenv("MONGOAPI_DBNAME", "")
 	c.Assert(dbName(), gocheck.Equals, "mongo_api")
 }
+
+func (s *S) TestCollection(c *gocheck.C) {
+	coll := collection()
+	c.Assert(coll.Database.Name, gocheck.Equals, "mongoapi")
+	err := coll.Database.Session.Ping()
+	c.Assert(err, gocheck.IsNil)
+}
