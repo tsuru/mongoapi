@@ -56,13 +56,12 @@ func Bind(w http.ResponseWriter, r *http.Request) error {
 
 func Unbind(w http.ResponseWriter, r *http.Request) error {
 	name := r.URL.Query().Get(":name")
-	database := session().DB(name)
-	err := database.RemoveUser(name)
-	if err != nil {
-		return err
+	host := r.URL.Query().Get(":hostname")
+	err := unbind(name, host)
+	if err == nil {
+		w.WriteHeader(http.StatusOK)
 	}
-	w.WriteHeader(http.StatusOK)
-	return nil
+	return err
 }
 
 func Remove(w http.ResponseWriter, r *http.Request) error {

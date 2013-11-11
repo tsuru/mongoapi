@@ -267,22 +267,46 @@ func (s *S) TestBindNoUnitHost(c *gocheck.C) {
 	c.Assert(recorder.Body.String(), gocheck.Equals, "Missing unit-host")
 }
 
-func (s *S) TestUnbindShouldRemoveTheUser(c *gocheck.C) {
+func (s *S) TestUnbind(c *gocheck.C) {
 	name := "myapp"
-	database := session().DB(name)
-	database.AddUser(name, "", false)
+	_, err := bind(name, "localhost", "10.10.10.10")
+	c.Assert(err, gocheck.IsNil)
 	defer func() {
+		database := session().DB(name)
 		database.DropDatabase()
 	}()
-	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10?:name=myapp&hostname=10.10.10.10", nil)
+	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10?:name=myapp&:hostname=10.10.10.10", nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
 	err = Unbind(recorder, request)
 	c.Assert(err, gocheck.IsNil)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
-	collection := session().DB(name).C("system.users")
-	lenght, err := collection.Find(bson.M{"user": name}).Count()
+	coll := session().DB(name).C("system.users")
+	lenght, err := coll.Find(bson.M{"user": name}).Count()
 	c.Assert(lenght, gocheck.Equals, 0)
+	count, err := collection().Find(bson.M{"name": name}).Count()
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(count, gocheck.Equals, 0)
+}
+
+func (s *S) TestUnbindWithoutRemovingTheUser(c *gocheck.C) {
+	name := "myapp"
+	_, err := bind(name, "localhost", "10.10.10.10")
+	c.Assert(err, gocheck.IsNil)
+	_, err = bind(name, "localhost", "10.10.10.11")
+	c.Assert(err, gocheck.IsNil)
+	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10?:name=myapp&:hostname=10.10.10.10", nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	err = Unbind(recorder, request)
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	coll := session().DB(name).C("system.users")
+	lenght, err := coll.Find(bson.M{"user": name}).Count()
+	c.Assert(lenght, gocheck.Equals, 1)
+	count, err := collection().Find(bson.M{"name": name}).Count()
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(count, gocheck.Equals, 1)
 }
 
 func (s *S) TestRemoveShouldRemovesTheDatabase(c *gocheck.C) {

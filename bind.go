@@ -71,3 +71,23 @@ func addUser(db, user, password string) error {
 	database := session().DB(db)
 	return database.AddUser(user, password, false)
 }
+
+func unbind(name, unitHost string) error {
+	var bind dbBind
+	coll := collection()
+	q := bson.M{"name": name, "units": unitHost}
+	err := coll.Find(q).One(&bind)
+	if err != nil {
+		return err
+	}
+	if len(bind.Units) == 1 {
+		coll.Remove(q)
+		return removeUser(name, name)
+	}
+	return coll.Update(q, bson.M{"$pull": bson.M{"units": unitHost}})
+}
+
+func removeUser(db, user string) error {
+	database := session().DB(db)
+	return database.RemoveUser(user)
+}
