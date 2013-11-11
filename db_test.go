@@ -5,41 +5,41 @@
 package main
 
 import (
-	. "launchpad.net/gocheck"
+	"launchpad.net/gocheck"
 	"os"
 )
 
-func (s *S) TestSessionNoEnvVar(c *C) {
+func (s *S) TestSessionNoEnvVar(c *gocheck.C) {
 	os.Setenv("MONGODB_URI", "")
 	session := session()
 	servers := session.LiveServers()
-	c.Assert(servers, DeepEquals, []string{"127.0.0.1:27017"})
+	c.Assert(servers, gocheck.DeepEquals, []string{"127.0.0.1:27017"})
 }
 
-func (s *S) TestSessionDontConnectTwice(c *C) {
+func (s *S) TestSessionDontConnectTwice(c *gocheck.C) {
 	os.Setenv("MONGODB_URI", "")
 	session1 := session()
 	session2 := session()
-	c.Assert(session1, Equals, session2)
+	c.Assert(session1, gocheck.Equals, session2)
 }
 
-func (s *S) TestSessionReconnects(c *C) {
+func (s *S) TestSessionReconnects(c *gocheck.C) {
 	session1 := session()
 	session1.Close()
 	session2 := session()
 	err := session2.Ping()
-	c.Assert(err, IsNil)
+	c.Assert(err, gocheck.IsNil)
 }
 
-func (s *S) TestSessionUsesEnvironmentVariable(c *C) {
+func (s *S) TestSessionUsesEnvironmentVariable(c *gocheck.C) {
 	os.Setenv("MONGODB_URI", "localhost:27017")
 	sess.Close()
 	session := session()
 	servers := session.LiveServers()
-	c.Assert(servers, DeepEquals, []string{"localhost:27017"})
+	c.Assert(servers, gocheck.DeepEquals, []string{"localhost:27017"})
 }
 
-func (s *S) TestCoalesceEnv(c *C) {
+func (s *S) TestCoalesceEnv(c *gocheck.C) {
 	var tests = []struct {
 		dvalue string
 		envs   []string
@@ -57,16 +57,16 @@ func (s *S) TestCoalesceEnv(c *C) {
 		},
 	}
 	for _, t := range tests {
-		c.Check(coalesceEnv(t.dvalue, t.envs...), Equals, t.want)
+		c.Check(coalesceEnv(t.dvalue, t.envs...), gocheck.Equals, t.want)
 	}
 }
 
-func (s *S) TestDBNameDefaultValue(c *C) {
-	c.Assert(dbName(), Equals, "mongoapi")
+func (s *S) TestDBNameDefaultValue(c *gocheck.C) {
+	c.Assert(dbName(), gocheck.Equals, "mongoapi")
 }
 
-func (s *S) TestDBNameEnvVar(c *C) {
+func (s *S) TestDBNameEnvVar(c *gocheck.C) {
 	os.Setenv("MONGOAPI_DBNAME", "mongo_api")
 	defer os.Setenv("MONGOAPI_DBNAME", "")
-	c.Assert(dbName(), Equals, "mongo_api")
+	c.Assert(dbName(), gocheck.Equals, "mongo_api")
 }
