@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -51,12 +52,30 @@ func (c *InChecker) Check(params []interface{}, names []string) (bool, string) {
 
 var In Checker = &InChecker{}
 
+func (s *S) SetUpTest(c *C) {
+
+}
+
 func (s *S) TestAdd(c *C) {
-	request, err := http.NewRequest("POST", "/resources/", nil)
+	body := strings.NewReader("name=something")
+	request, err := http.NewRequest("POST", "/resources/", body)
 	c.Assert(err, IsNil)
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
 	Add(recorder, request)
 	c.Assert(recorder.Code, Equals, http.StatusCreated)
+}
+
+func (s *S) TestAddReservedName(c *C) {
+	name := dbName()
+	body := strings.NewReader("name="+name)
+	request, err := http.NewRequest("POST", "/resources/", body)
+	c.Assert(err, IsNil)
+	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	recorder := httptest.NewRecorder()
+	Add(recorder, request)
+	c.Assert(recorder.Code, Equals, http.StatusForbidden)
+	c.Assert(recorder.Body.String(), Equals, "Reserved name")
 }
 
 func (s *S) TestBindShouldReturnLocalhostWhenThePublicHostEnvIsNil(c *C) {

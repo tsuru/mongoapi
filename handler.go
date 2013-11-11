@@ -24,6 +24,12 @@ func newPassword() string {
 }
 
 func Add(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if name == dbName() {
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprint(w, "Reserved name")
+		return
+	}
 	w.WriteHeader(http.StatusCreated)
 }
 
