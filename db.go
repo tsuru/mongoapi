@@ -47,3 +47,7 @@ func coalesceEnv(defaultValue string, envs ...string) string {
 	}
 	return defaultValue
 }
+
+func dbName() string {
+	return coalesceEnv("mongoapi", "MONGOAPI_DBNAME")
+}

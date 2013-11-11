@@ -60,3 +60,13 @@ func (s *S) TestCoalesceEnv(c *C) {
 		c.Check(coalesceEnv(t.dvalue, t.envs...), Equals, t.want)
 	}
 }
+
+func (s *S) TestDBNameDefaultValue(c *C) {
+	c.Assert(dbName(), Equals, "mongoapi")
+}
+
+func (s *S) TestDBNameEnvVar(c *C) {
+	os.Setenv("MONGOAPI_DBNAME", "mongo_api")
+	defer os.Setenv("MONGOAPI_DBNAME", "")
+	c.Assert(dbName(), Equals, "mongo_api")
+}
