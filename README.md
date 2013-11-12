@@ -16,3 +16,5 @@ following environment variables:
   MongoDB server externally. _Default value:_ the value of ``MONGODB_URI``.
 * **MONGODB_REPLICA_SET**: name of the replica set in use. It's optional, when
   ommited, the API won't use a replica set.
+* **MONGOAPI_DBNAME**: name of the database in use to store metadata of the
+  API.
