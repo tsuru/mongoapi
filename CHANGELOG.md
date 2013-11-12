@@ -1,6 +1,11 @@
 mongoapi changelog
 ==================
 
+0.1.1
+-----
+
+* Fix data race in bind handler
+
 0.1.0
 -----
 
