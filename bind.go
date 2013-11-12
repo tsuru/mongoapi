@@ -5,6 +5,7 @@
 package main
 
 import (
+	"github.com/globocom/tsuru/safe"
 	"labix.org/v2/mgo/bson"
 	"os"
 )
@@ -19,12 +20,16 @@ type dbBind struct {
 
 type env map[string]string
 
+var locker = safe.MultiLocker()
+
 func bind(name, appHost, unitHost string) (env, error) {
 	data := map[string]string{
 		"MONGO_URI":           coalesceEnv("127.0.0.1:27017", "MONGODB_PUBLIC_URI", "MONGODB_URI"),
 		"MONGO_USER":          name,
 		"MONGO_DATABASE_NAME": name,
 	}
+	locker.Lock(name)
+	defer locker.Unlock(name)
 	var bind dbBind
 	q := bson.M{"name": name, "apphost": appHost}
 	coll := collection()
@@ -73,6 +78,8 @@ func addUser(db, user, password string) error {
 }
 
 func unbind(name, unitHost string) error {
+	locker.Lock(name)
+	defer locker.Unlock(name)
 	var bind dbBind
 	coll := collection()
 	q := bson.M{"name": name, "units": unitHost}
