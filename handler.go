@@ -86,6 +86,19 @@ type Handler func(http.ResponseWriter, *http.Request) error
 
 func (fn Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := fn(w, r); err != nil {
-		http.Error(w, err.Error(), 500)
+		if e, ok := err.(*httpError); ok {
+			http.Error(w, e.body, e.code)
+		} else {
+			http.Error(w, err.Error(), 500)
+		}
 	}
+}
+
+type httpError struct {
+	code int
+	body string
+}
+
+func (e *httpError) Error() string {
+	return fmt.Sprintf("HTTP error (%d): %s", e.code, e.body)
 }

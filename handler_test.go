@@ -343,6 +343,10 @@ func errorHandler(w http.ResponseWriter, r *http.Request) error {
 	return stderrors.New("some error")
 }
 
+func httpErrorHandler(w http.ResponseWriter, r *http.Request) error {
+	return &httpError{code: 400, body: "please provide a name"}
+}
+
 func simpleHandler(w http.ResponseWriter, r *http.Request) error {
 	fmt.Fprint(w, "success")
 	return nil
@@ -352,18 +356,30 @@ func (s *S) TestHandlerReturns500WhenInternalHandlerReturnsAnError(c *gocheck.C)
 	recorder := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/apps", nil)
 	c.Assert(err, gocheck.IsNil)
-
 	Handler(errorHandler).ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 500)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "some error\n")
+}
+
+func (s *S) TestHandlerWithHTTPError(c *gocheck.C) {
+	recorder := httptest.NewRecorder()
+	request, err := http.NewRequest("GET", "/apps", nil)
+	c.Assert(err, gocheck.IsNil)
+	Handler(httpErrorHandler).ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, 400)
+	c.Assert(recorder.Body.String(), gocheck.Equals, "please provide a name\n")
 }
 
 func (s *S) TestHandlerShouldPassAnHandlerWithoutError(c *gocheck.C) {
 	recorder := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/apps", nil)
 	c.Assert(err, gocheck.IsNil)
-
 	Handler(simpleHandler).ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, 200)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "success")
+}
+
+func (s *S) TestHTTPError(c *gocheck.C) {
+	var err error = &httpError{code: 404, body: "not found"}
+	c.Assert(err.Error(), gocheck.Equals, "HTTP error (404): not found")
 }
