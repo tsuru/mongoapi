@@ -21,7 +21,7 @@ func init() {
 	flag.Parse()
 }
 
-func buildMux() *pat.PatternServeMux {
+func buildMux() http.Handler {
 	m := pat.New()
 	m.Post("/resources", http.HandlerFunc(Add))
 	m.Post("/resources/:name", Handler(Bind))
