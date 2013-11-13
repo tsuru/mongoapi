@@ -1,6 +1,11 @@
 mongoapi changelog
 ==================
 
+0.2.0
+-----
+
+* Remove binds from database when removing the instance.
+
 0.1.1
 -----
 
