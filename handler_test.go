@@ -20,9 +20,15 @@ import (
 
 var _ = gocheck.Suite(&S{})
 
-type S struct{}
+type S struct {
+	muxer http.Handler
+}
 
 func Test(t *testing.T) { gocheck.TestingT(t) }
+
+func (s *S) SetUpSuite(c *gocheck.C) {
+	s.muxer = buildMux()
+}
 
 type InChecker struct{}
 
@@ -54,35 +60,34 @@ var In gocheck.Checker = &InChecker{}
 
 func (s *S) TestAdd(c *gocheck.C) {
 	body := strings.NewReader("name=something")
-	request, err := http.NewRequest("POST", "/resources/", body)
+	request, err := http.NewRequest("POST", "/resources", body)
 	c.Assert(err, gocheck.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
-	Add(recorder, request)
+	s.muxer.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusCreated)
 }
 
 func (s *S) TestAddReservedName(c *gocheck.C) {
 	name := dbName()
 	body := strings.NewReader("name=" + name)
-	request, err := http.NewRequest("POST", "/resources/", body)
+	request, err := http.NewRequest("POST", "/resources", body)
 	c.Assert(err, gocheck.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
-	Add(recorder, request)
+	s.muxer.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusForbidden)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "Reserved name")
 }
 
 func (s *S) TestBindShouldReturnLocalhostWhenThePublicHostEnvIsNil(c *gocheck.C) {
 	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
-	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
+	request, err := http.NewRequest("POST", "/resources/myapp", body)
 	c.Assert(err, gocheck.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	os.Setenv("MONGODB_PUBLIC_URI", "")
 	recorder := httptest.NewRecorder()
-	err = Bind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	defer func() {
 		database := session().DB("myapp")
 		database.RemoveUser("myapp")
@@ -119,8 +124,7 @@ func (s *S) TestBindTwoInstances(c *gocheck.C) {
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	os.Setenv("MONGODB_PUBLIC_URI", "")
 	recorder := httptest.NewRecorder()
-	err = Bind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	defer func() {
 		database := session().DB("myapp")
 		database.RemoveUser("myapp")
@@ -131,12 +135,11 @@ func (s *S) TestBindTwoInstances(c *gocheck.C) {
 	err = json.NewDecoder(recorder.Body).Decode(&first)
 	c.Assert(err, gocheck.IsNil)
 	body = strings.NewReader("app-host=localhost&unit-host=127.0.0.2")
-	request, err = http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
+	request, err = http.NewRequest("POST", "/resources/myapp", body)
 	c.Assert(err, gocheck.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder = httptest.NewRecorder()
-	err = Bind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusCreated)
 	err = json.NewDecoder(recorder.Body).Decode(&second)
 	c.Assert(err, gocheck.IsNil)
@@ -155,15 +158,14 @@ func (s *S) TestBindTwoInstances(c *gocheck.C) {
 
 func (s *S) TestBindWithReplicaSet(c *gocheck.C) {
 	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
-	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
+	request, err := http.NewRequest("POST", "/resources/myapp", body)
 	c.Assert(err, gocheck.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	publicHost := "mongoapi.com:27017"
 	os.Setenv("MONGODB_PUBLIC_URI", publicHost)
 	os.Setenv("MONGODB_REPLICA_SET", "tsuru")
 	recorder := httptest.NewRecorder()
-	err = Bind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	defer func() {
 		database := session().DB("myapp")
 		database.RemoveUser("myapp")
@@ -179,14 +181,13 @@ func (s *S) TestBindWithReplicaSet(c *gocheck.C) {
 
 func (s *S) TestBindShouldReturnTheVariables(c *gocheck.C) {
 	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
-	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
+	request, err := http.NewRequest("POST", "/resources/myapp", body)
 	c.Assert(err, gocheck.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	publicHost := "mongoapi.com:27017"
 	os.Setenv("MONGODB_PUBLIC_URI", publicHost)
 	recorder := httptest.NewRecorder()
-	err = Bind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	defer func() {
 		database := session().DB("myapp")
 		database.RemoveUser("myapp")
@@ -206,12 +207,11 @@ func (s *S) TestBindShouldReturnTheVariables(c *gocheck.C) {
 
 func (s *S) TestBindShouldCreateTheDatabase(c *gocheck.C) {
 	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
-	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
+	request, err := http.NewRequest("POST", "/resources/myapp", body)
 	c.Assert(err, gocheck.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
-	err = Bind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	defer func() {
 		database := session().DB("myapp")
 		database.RemoveUser("myapp")
@@ -225,12 +225,11 @@ func (s *S) TestBindShouldCreateTheDatabase(c *gocheck.C) {
 
 func (s *S) TestBindShouldAddUserInTheDatabase(c *gocheck.C) {
 	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
-	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
+	request, err := http.NewRequest("POST", "/resources/myapp", body)
 	c.Assert(err, gocheck.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
-	err = Bind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	defer func() {
 		database := session().DB("myapp")
 		database.RemoveUser("myapp")
@@ -245,24 +244,22 @@ func (s *S) TestBindShouldAddUserInTheDatabase(c *gocheck.C) {
 
 func (s *S) TestBindNoAppHost(c *gocheck.C) {
 	body := strings.NewReader("unit-host=127.0.0.1")
-	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
+	request, err := http.NewRequest("POST", "/resources/myapp", body)
 	c.Assert(err, gocheck.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
-	err = Bind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "Missing app-host")
 }
 
 func (s *S) TestBindNoUnitHost(c *gocheck.C) {
 	body := strings.NewReader("app-host=localhost")
-	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
+	request, err := http.NewRequest("POST", "/resources/myapp", body)
 	c.Assert(err, gocheck.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
-	err = Bind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
 	c.Assert(recorder.Body.String(), gocheck.Equals, "Missing unit-host")
 }
@@ -275,11 +272,10 @@ func (s *S) TestUnbind(c *gocheck.C) {
 		database := session().DB(name)
 		database.DropDatabase()
 	}()
-	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10?:name=myapp&:hostname=10.10.10.10", nil)
+	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10", nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	err = Unbind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	coll := session().DB(name).C("system.users")
 	lenght, err := coll.Find(bson.M{"user": name}).Count()
@@ -295,11 +291,10 @@ func (s *S) TestUnbindWithoutRemovingTheUser(c *gocheck.C) {
 	c.Assert(err, gocheck.IsNil)
 	_, err = bind(name, "localhost", "10.10.10.11")
 	c.Assert(err, gocheck.IsNil)
-	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10?:name=myapp&:hostname=10.10.10.10", nil)
+	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10", nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	err = Unbind(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	coll := session().DB(name).C("system.users")
 	lenght, err := coll.Find(bson.M{"user": name}).Count()
@@ -309,15 +304,14 @@ func (s *S) TestUnbindWithoutRemovingTheUser(c *gocheck.C) {
 	c.Assert(count, gocheck.Equals, 1)
 }
 
-func (s *S) TestRemoveShouldRemovesTheDatabase(c *gocheck.C) {
+func (s *S) TestRemoveShouldRemoveTheDatabase(c *gocheck.C) {
 	name := "myapp"
 	database := session().DB(name)
 	database.AddUser(name, "", false)
-	request, err := http.NewRequest("DELETE", "/resources/name?:name=myapp", nil)
+	request, err := http.NewRequest("DELETE", "/resources/myapp", nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	err = Remove(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	databases, err := session().DatabaseNames()
 	c.Assert(name, gocheck.Not(In), databases)
@@ -331,11 +325,10 @@ func (s *S) TestStatus(c *gocheck.C) {
 		database.RemoveUser("myapp")
 		database.DropDatabase()
 	}()
-	request, err := http.NewRequest("GET", "/resources/myapp/status?:name=myapp", nil)
+	request, err := http.NewRequest("GET", "/resources/myapp/status", nil)
 	c.Assert(err, gocheck.IsNil)
 	recorder := httptest.NewRecorder()
-	err = Status(recorder, request)
-	c.Assert(err, gocheck.IsNil)
+	s.muxer.ServeHTTP(recorder, request)
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusNoContent)
 }
 
