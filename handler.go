@@ -66,6 +66,7 @@ func Unbind(w http.ResponseWriter, r *http.Request) error {
 
 func Remove(w http.ResponseWriter, r *http.Request) error {
 	name := r.URL.Query().Get(":name")
+	collection().RemoveAll(bson.M{"name": name})
 	err := session().DB(name).DropDatabase()
 	if err != nil {
 		return err

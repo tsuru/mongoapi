@@ -30,6 +30,10 @@ func (s *S) SetUpSuite(c *gocheck.C) {
 	s.muxer = buildMux()
 }
 
+func (s *S) TearDownSuite(c *gocheck.C) {
+	session().DB(dbName()).DropDatabase()
+}
+
 type InChecker struct{}
 
 func (c *InChecker) Info() *gocheck.CheckerInfo {
@@ -315,6 +319,21 @@ func (s *S) TestRemoveShouldRemoveTheDatabase(c *gocheck.C) {
 	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
 	databases, err := session().DatabaseNames()
 	c.Assert(name, gocheck.Not(In), databases)
+}
+
+func (s *S) TestRemoveShouldRemoveBinds(c *gocheck.C) {
+	name := "myapp"
+	collection().Insert(dbBind{Name: name})
+	database := session().DB(name)
+	database.AddUser(name, "", false)
+	request, err := http.NewRequest("DELETE", "/resources/myapp", nil)
+	c.Assert(err, gocheck.IsNil)
+	recorder := httptest.NewRecorder()
+	s.muxer.ServeHTTP(recorder, request)
+	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	count, err := collection().Find(bson.M{"name": name}).Count()
+	c.Assert(err, gocheck.IsNil)
+	c.Assert(count, gocheck.Equals, 0)
 }
 
 func (s *S) TestStatus(c *gocheck.C) {
