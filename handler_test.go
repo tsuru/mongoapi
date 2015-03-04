@@ -272,7 +272,6 @@ func (s *S) TestUnbind(c *check.C) {
 	}
 	_, err = mgo.DialWithInfo(&info)
 	c.Assert(err, check.NotNil)
-	c.Assert(err.Error(), check.Equals, "auth failed")
 }
 
 func (s *S) TestUnbindWithoutRemovingTheUser(c *check.C) {
