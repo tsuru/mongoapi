@@ -1,4 +1,4 @@
-// Copyright 2013 mongoapi authors. All rights reserved.
+// Copyright 2015 mongoapi authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -6,38 +6,44 @@ package main
 
 import (
 	"encoding/json"
-	stderrors "errors"
+	"errors"
 	"fmt"
 	"io/ioutil"
-	"labix.org/v2/mgo/bson"
-	"launchpad.net/gocheck"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+
+	"gopkg.in/check.v1"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
-var _ = gocheck.Suite(&S{})
+var _ = check.Suite(&S{})
 
 type S struct {
 	muxer http.Handler
 }
 
-func Test(t *testing.T) { gocheck.TestingT(t) }
+func Test(t *testing.T) { check.TestingT(t) }
 
-func (s *S) SetUpSuite(c *gocheck.C) {
+func (s *S) SetUpSuite(c *check.C) {
 	s.muxer = buildMux()
 }
 
-func (s *S) TearDownSuite(c *gocheck.C) {
+func (s *S) TearDownSuite(c *check.C) {
 	session().DB(dbName()).DropDatabase()
+}
+
+func (s *S) SetUpTest(c *check.C) {
+	collection().RemoveAll(nil)
 }
 
 type InChecker struct{}
 
-func (c *InChecker) Info() *gocheck.CheckerInfo {
-	return &gocheck.CheckerInfo{Name: "In", Params: []string{"value", "list"}}
+func (c *InChecker) Info() *check.CheckerInfo {
+	return &check.CheckerInfo{Name: "In", Params: []string{"value", "list"}}
 }
 
 func (c *InChecker) Check(params []interface{}, names []string) (bool, string) {
@@ -60,34 +66,34 @@ func (c *InChecker) Check(params []interface{}, names []string) (bool, string) {
 	return false, ""
 }
 
-var In gocheck.Checker = &InChecker{}
+var In check.Checker = &InChecker{}
 
-func (s *S) TestAdd(c *gocheck.C) {
+func (s *S) TestAdd(c *check.C) {
 	body := strings.NewReader("name=something")
 	request, err := http.NewRequest("POST", "/resources", body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
 	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusCreated)
+	c.Assert(recorder.Code, check.Equals, http.StatusCreated)
 }
 
-func (s *S) TestAddReservedName(c *gocheck.C) {
+func (s *S) TestAddReservedName(c *check.C) {
 	name := dbName()
 	body := strings.NewReader("name=" + name)
 	request, err := http.NewRequest("POST", "/resources", body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
 	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusForbidden)
-	c.Assert(recorder.Body.String(), gocheck.Equals, "Reserved name")
+	c.Assert(recorder.Code, check.Equals, http.StatusForbidden)
+	c.Assert(recorder.Body.String(), check.Equals, "Reserved name")
 }
 
-func (s *S) TestBindShouldReturnLocalhostWhenThePublicHostEnvIsNil(c *gocheck.C) {
+func (s *S) TestBindShouldReturnLocalhostWhenThePublicHostEnvIsNil(c *check.C) {
 	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
 	request, err := http.NewRequest("POST", "/resources/myapp", body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	os.Setenv("MONGODB_PUBLIC_URI", "")
 	recorder := httptest.NewRecorder()
@@ -97,34 +103,34 @@ func (s *S) TestBindShouldReturnLocalhostWhenThePublicHostEnvIsNil(c *gocheck.C)
 		database.RemoveUser("myapp")
 		database.DropDatabase()
 	}()
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusCreated)
+	c.Assert(recorder.Code, check.Equals, http.StatusCreated)
 	result, err := ioutil.ReadAll(recorder.Body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	data := map[string]string{}
 	json.Unmarshal(result, &data)
-	c.Assert(data["MONGO_URI"], gocheck.Equals, "127.0.0.1:27017")
-	c.Assert(data["MONGO_USER"], gocheck.Equals, "myapp")
-	c.Assert(data["MONGO_DATABASE_NAME"], gocheck.Equals, "myapp")
-	c.Assert(data["MONGO_PASSWORD"], gocheck.Not(gocheck.HasLen), 0)
+	c.Assert(data["MONGO_URI"], check.Equals, "127.0.0.1:27017")
+	c.Assert(data["MONGO_USER"], check.Equals, "myapp")
+	c.Assert(data["MONGO_DATABASE_NAME"], check.Equals, "myapp")
+	c.Assert(data["MONGO_PASSWORD"], check.Not(check.HasLen), 0)
 	coll := collection()
 	expected := dbBind{
 		AppHost:  "localhost",
 		Name:     "myapp",
 		Password: data["MONGO_PASSWORD"],
-		Units:    []string{"127.0.0.1"},
+		Calls:    1,
 	}
 	var bind dbBind
 	q := bson.M{"name": "myapp"}
 	defer coll.Remove(q)
 	err = coll.Find(q).One(&bind)
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(bind, gocheck.DeepEquals, expected)
+	c.Assert(err, check.IsNil)
+	c.Assert(bind, check.DeepEquals, expected)
 }
 
-func (s *S) TestBindTwoInstances(c *gocheck.C) {
+func (s *S) TestBindTwoInstances(c *check.C) {
 	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
 	request, err := http.NewRequest("POST", "/resources/myapp?:name=myapp", body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	os.Setenv("MONGODB_PUBLIC_URI", "")
 	recorder := httptest.NewRecorder()
@@ -137,33 +143,33 @@ func (s *S) TestBindTwoInstances(c *gocheck.C) {
 	}()
 	var first, second map[string]string
 	err = json.NewDecoder(recorder.Body).Decode(&first)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	body = strings.NewReader("app-host=localhost&unit-host=127.0.0.2")
 	request, err = http.NewRequest("POST", "/resources/myapp", body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder = httptest.NewRecorder()
 	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusCreated)
+	c.Assert(recorder.Code, check.Equals, http.StatusCreated)
 	err = json.NewDecoder(recorder.Body).Decode(&second)
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(second, gocheck.DeepEquals, first)
+	c.Assert(err, check.IsNil)
+	c.Assert(second, check.DeepEquals, first)
 	expected := dbBind{
 		AppHost:  "localhost",
 		Name:     "myapp",
 		Password: first["MONGO_PASSWORD"],
-		Units:    []string{"127.0.0.1", "127.0.0.2"},
+		Calls:    2,
 	}
 	var bind dbBind
 	err = collection().Find(bson.M{"name": "myapp"}).One(&bind)
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(bind, gocheck.DeepEquals, expected)
+	c.Assert(err, check.IsNil)
+	c.Assert(bind, check.DeepEquals, expected)
 }
 
-func (s *S) TestBindWithReplicaSet(c *gocheck.C) {
+func (s *S) TestBindWithReplicaSet(c *check.C) {
 	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
 	request, err := http.NewRequest("POST", "/resources/myapp", body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	publicHost := "mongoapi.com:27017"
 	os.Setenv("MONGODB_PUBLIC_URI", publicHost)
@@ -176,17 +182,17 @@ func (s *S) TestBindWithReplicaSet(c *gocheck.C) {
 		database.DropDatabase()
 		collection().Remove(bson.M{"name": "myapp"})
 	}()
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusCreated)
+	c.Assert(recorder.Code, check.Equals, http.StatusCreated)
 	var data map[string]string
 	err = json.NewDecoder(recorder.Body).Decode(&data)
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(data["MONGO_REPLICA_SET"], gocheck.Equals, "tsuru")
+	c.Assert(err, check.IsNil)
+	c.Assert(data["MONGO_REPLICA_SET"], check.Equals, "tsuru")
 }
 
-func (s *S) TestBindShouldReturnTheVariables(c *gocheck.C) {
+func (s *S) TestBind(c *check.C) {
 	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
 	request, err := http.NewRequest("POST", "/resources/myapp", body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	publicHost := "mongoapi.com:27017"
 	os.Setenv("MONGODB_PUBLIC_URI", publicHost)
@@ -198,145 +204,133 @@ func (s *S) TestBindShouldReturnTheVariables(c *gocheck.C) {
 		database.DropDatabase()
 		collection().Remove(bson.M{"name": "myapp"})
 	}()
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusCreated)
+	c.Assert(recorder.Code, check.Equals, http.StatusCreated)
 	result, err := ioutil.ReadAll(recorder.Body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	data := map[string]string{}
 	json.Unmarshal(result, &data)
-	c.Assert(data["MONGO_URI"], gocheck.Equals, publicHost)
-	c.Assert(data["MONGO_USER"], gocheck.Equals, "myapp")
-	c.Assert(data["MONGO_DATABASE_NAME"], gocheck.Equals, "myapp")
-	c.Assert(data["MONGO_PASSWORD"], gocheck.Not(gocheck.HasLen), 0)
+	c.Assert(data["MONGO_URI"], check.Equals, publicHost)
+	c.Assert(data["MONGO_USER"], check.Equals, "myapp")
+	c.Assert(data["MONGO_DATABASE_NAME"], check.Equals, "myapp")
+	c.Assert(data["MONGO_PASSWORD"], check.Not(check.HasLen), 0)
+	info := mgo.DialInfo{
+		Addrs:    []string{"localhost:27017"},
+		Database: data["MONGO_DATABASE_NAME"],
+		Username: data["MONGO_USER"],
+		Password: data["MONGO_PASSWORD"],
+	}
+	session, err := mgo.DialWithInfo(&info)
+	c.Assert(err, check.IsNil)
+	defer session.Close()
+	err = session.DB(info.Database).C("mycollection").Insert(bson.M{"some": "stuff"})
+	c.Assert(err, check.IsNil)
+	err = session.DB(info.Database).C("mycollection").Remove(bson.M{"some": "stuff"})
 }
 
-func (s *S) TestBindShouldCreateTheDatabase(c *gocheck.C) {
-	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
-	request, err := http.NewRequest("POST", "/resources/myapp", body)
-	c.Assert(err, gocheck.IsNil)
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	recorder := httptest.NewRecorder()
-	s.muxer.ServeHTTP(recorder, request)
-	defer func() {
-		database := session().DB("myapp")
-		database.RemoveUser("myapp")
-		database.DropDatabase()
-		collection().Remove(bson.M{"name": "myapp"})
-	}()
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusCreated)
-	databases, err := session().DatabaseNames()
-	c.Assert("myapp", In, databases)
-}
-
-func (s *S) TestBindShouldAddUserInTheDatabase(c *gocheck.C) {
-	body := strings.NewReader("app-host=localhost&unit-host=127.0.0.1")
-	request, err := http.NewRequest("POST", "/resources/myapp", body)
-	c.Assert(err, gocheck.IsNil)
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	recorder := httptest.NewRecorder()
-	s.muxer.ServeHTTP(recorder, request)
-	defer func() {
-		database := session().DB("myapp")
-		database.RemoveUser("myapp")
-		database.DropDatabase()
-		collection().Remove(bson.M{"name": "myapp"})
-	}()
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusCreated)
-	collection := session().DB("myapp").C("system.users")
-	lenght, err := collection.Find(bson.M{"user": "myapp"}).Count()
-	c.Assert(lenght, gocheck.Equals, 1)
-}
-
-func (s *S) TestBindNoAppHost(c *gocheck.C) {
+func (s *S) TestBindNoAppHost(c *check.C) {
 	body := strings.NewReader("unit-host=127.0.0.1")
 	request, err := http.NewRequest("POST", "/resources/myapp", body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
 	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
-	c.Assert(recorder.Body.String(), gocheck.Equals, "Missing app-host")
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, "Missing app-host")
 }
 
-func (s *S) TestBindNoUnitHost(c *gocheck.C) {
+func (s *S) TestBindNoUnitHost(c *check.C) {
 	body := strings.NewReader("app-host=localhost")
 	request, err := http.NewRequest("POST", "/resources/myapp", body)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	recorder := httptest.NewRecorder()
 	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusBadRequest)
-	c.Assert(recorder.Body.String(), gocheck.Equals, "Missing unit-host")
+	c.Assert(recorder.Code, check.Equals, http.StatusBadRequest)
+	c.Assert(recorder.Body.String(), check.Equals, "Missing unit-host")
 }
 
-func (s *S) TestUnbind(c *gocheck.C) {
+func (s *S) TestUnbind(c *check.C) {
 	name := "myapp"
-	_, err := bind(name, "localhost", "10.10.10.10")
-	c.Assert(err, gocheck.IsNil)
+	env, err := bind(name, "localhost", "10.10.10.10")
+	c.Assert(err, check.IsNil)
 	defer func() {
 		database := session().DB(name)
 		database.DropDatabase()
 	}()
 	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10", nil)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	recorder := httptest.NewRecorder()
 	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
-	coll := session().DB(name).C("system.users")
-	lenght, err := coll.Find(bson.M{"user": name}).Count()
-	c.Assert(lenght, gocheck.Equals, 0)
-	count, err := collection().Find(bson.M{"name": name}).Count()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(count, gocheck.Equals, 0)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	info := mgo.DialInfo{
+		Addrs:    []string{"localhost:27017"},
+		Database: env["MONGO_DATABASE"],
+		Username: env["MONGO_USER"],
+		Password: env["MONGO_PASSWORD"],
+		Timeout:  1e9,
+		FailFast: true,
+	}
+	_, err = mgo.DialWithInfo(&info)
+	c.Assert(err, check.NotNil)
+	c.Assert(err.Error(), check.Equals, "auth failed")
 }
 
-func (s *S) TestUnbindWithoutRemovingTheUser(c *gocheck.C) {
+func (s *S) TestUnbindWithoutRemovingTheUser(c *check.C) {
 	name := "myapp"
-	_, err := bind(name, "localhost", "10.10.10.10")
-	c.Assert(err, gocheck.IsNil)
+	env, err := bind(name, "localhost", "10.10.10.10")
+	c.Assert(err, check.IsNil)
 	_, err = bind(name, "localhost", "10.10.10.11")
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	request, err := http.NewRequest("DELETE", "/resources/myapp/hostname/10.10.10.10", nil)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	recorder := httptest.NewRecorder()
 	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
-	coll := session().DB(name).C("system.users")
-	lenght, err := coll.Find(bson.M{"user": name}).Count()
-	c.Assert(lenght, gocheck.Equals, 1)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
+	info := mgo.DialInfo{
+		Addrs:    []string{"localhost:27017"},
+		Database: env["MONGO_DATABASE_NAME"],
+		Username: env["MONGO_USER"],
+		Password: env["MONGO_PASSWORD"],
+		Timeout:  1e9,
+		FailFast: true,
+	}
+	session, err := mgo.DialWithInfo(&info)
+	c.Assert(err, check.IsNil)
+	session.Close()
 	count, err := collection().Find(bson.M{"name": name}).Count()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(count, gocheck.Equals, 1)
+	c.Assert(err, check.IsNil)
+	c.Assert(count, check.Equals, 1)
 }
 
-func (s *S) TestRemoveShouldRemoveTheDatabase(c *gocheck.C) {
+func (s *S) TestRemoveShouldRemoveTheDatabase(c *check.C) {
 	name := "myapp"
 	database := session().DB(name)
 	database.AddUser(name, "", false)
 	request, err := http.NewRequest("DELETE", "/resources/myapp", nil)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	recorder := httptest.NewRecorder()
 	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
 	databases, err := session().DatabaseNames()
-	c.Assert(name, gocheck.Not(In), databases)
+	c.Assert(name, check.Not(In), databases)
 }
 
-func (s *S) TestRemoveShouldRemoveBinds(c *gocheck.C) {
+func (s *S) TestRemoveShouldRemoveBinds(c *check.C) {
 	name := "myapp"
 	collection().Insert(dbBind{Name: name})
 	database := session().DB(name)
 	database.AddUser(name, "", false)
 	request, err := http.NewRequest("DELETE", "/resources/myapp", nil)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	recorder := httptest.NewRecorder()
 	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusOK)
+	c.Assert(recorder.Code, check.Equals, http.StatusOK)
 	count, err := collection().Find(bson.M{"name": name}).Count()
-	c.Assert(err, gocheck.IsNil)
-	c.Assert(count, gocheck.Equals, 0)
+	c.Assert(err, check.IsNil)
+	c.Assert(count, check.Equals, 0)
 }
 
-func (s *S) TestStatus(c *gocheck.C) {
+func (s *S) TestStatus(c *check.C) {
 	name := "myapp"
 	database := session().DB(name)
 	database.AddUser(name, "", false)
@@ -345,14 +339,14 @@ func (s *S) TestStatus(c *gocheck.C) {
 		database.DropDatabase()
 	}()
 	request, err := http.NewRequest("GET", "/resources/myapp/status", nil)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	recorder := httptest.NewRecorder()
 	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, http.StatusNoContent)
+	c.Assert(recorder.Code, check.Equals, http.StatusNoContent)
 }
 
 func errorHandler(w http.ResponseWriter, r *http.Request) error {
-	return stderrors.New("some error")
+	return errors.New("some error")
 }
 
 func httpErrorHandler(w http.ResponseWriter, r *http.Request) error {
@@ -364,34 +358,34 @@ func simpleHandler(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (s *S) TestHandlerReturns500WhenInternalHandlerReturnsAnError(c *gocheck.C) {
+func (s *S) TestHandlerReturns500WhenInternalHandlerReturnsAnError(c *check.C) {
 	recorder := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/apps", nil)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	Handler(errorHandler).ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, 500)
-	c.Assert(recorder.Body.String(), gocheck.Equals, "some error\n")
+	c.Assert(recorder.Code, check.Equals, 500)
+	c.Assert(recorder.Body.String(), check.Equals, "some error\n")
 }
 
-func (s *S) TestHandlerWithHTTPError(c *gocheck.C) {
+func (s *S) TestHandlerWithHTTPError(c *check.C) {
 	recorder := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/apps", nil)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	Handler(httpErrorHandler).ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, 400)
-	c.Assert(recorder.Body.String(), gocheck.Equals, "please provide a name\n")
+	c.Assert(recorder.Code, check.Equals, 400)
+	c.Assert(recorder.Body.String(), check.Equals, "please provide a name\n")
 }
 
-func (s *S) TestHandlerShouldPassAnHandlerWithoutError(c *gocheck.C) {
+func (s *S) TestHandlerShouldPassAnHandlerWithoutError(c *check.C) {
 	recorder := httptest.NewRecorder()
 	request, err := http.NewRequest("GET", "/apps", nil)
-	c.Assert(err, gocheck.IsNil)
+	c.Assert(err, check.IsNil)
 	Handler(simpleHandler).ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, gocheck.Equals, 200)
-	c.Assert(recorder.Body.String(), gocheck.Equals, "success")
+	c.Assert(recorder.Code, check.Equals, 200)
+	c.Assert(recorder.Body.String(), check.Equals, "success")
 }
 
-func (s *S) TestHTTPError(c *gocheck.C) {
+func (s *S) TestHTTPError(c *check.C) {
 	var err error = &httpError{code: 404, body: "not found"}
-	c.Assert(err.Error(), gocheck.Equals, "HTTP error (404): not found")
+	c.Assert(err.Error(), check.Equals, "HTTP error (404): not found")
 }

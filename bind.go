@@ -1,26 +1,27 @@
-// Copyright 2013 mongoapi authors. All rights reserved.
+// Copyright 2015 mongoapi authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
 package main
 
 import (
-	"github.com/globocom/tsuru/safe"
-	"labix.org/v2/mgo/bson"
 	"os"
+
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 // dbBind represents a bind stored in the database.
 type dbBind struct {
-	AppHost  string
 	Name     string
+	AppHost  string
 	Password string
-	Units    []string
+	Calls    int
 }
 
 type env map[string]string
 
-var locker = safe.MultiLocker()
+var locker = multiLocker()
 
 func bind(name, appHost, unitHost string) (env, error) {
 	data := map[string]string{
@@ -34,12 +35,12 @@ func bind(name, appHost, unitHost string) (env, error) {
 	q := bson.M{"name": name, "apphost": appHost}
 	coll := collection()
 	if err := coll.Find(q).One(&bind); err == nil {
-		err = coll.Update(q, bson.M{"$addToSet": bson.M{"units": unitHost}})
+		err = coll.Update(q, bson.M{"$inc": bson.M{"calls": 1}})
 		if err != nil {
 			return nil, err
 		}
 		data["MONGO_PASSWORD"] = bind.Password
-	} else if err.Error() != "not found" {
+	} else if err != mgo.ErrNotFound {
 		return nil, err
 	} else {
 		password, err := newBind(name, appHost, unitHost)
@@ -64,7 +65,7 @@ func newBind(name, appHost, unitHost string) (string, error) {
 		AppHost:  appHost,
 		Name:     name,
 		Password: password,
-		Units:    []string{unitHost},
+		Calls:    1,
 	})
 	if err != nil {
 		return "", err
@@ -72,26 +73,31 @@ func newBind(name, appHost, unitHost string) (string, error) {
 	return password, nil
 }
 
-func addUser(db, user, password string) error {
+func addUser(db, username, password string) error {
 	database := session().DB(db)
-	return database.AddUser(user, password, false)
+	user := mgo.User{
+		Username: username,
+		Password: password,
+		Roles:    []mgo.Role{mgo.RoleReadWrite},
+	}
+	return database.UpsertUser(&user)
 }
 
-func unbind(name, unitHost string) error {
+func unbind(name string) error {
 	locker.Lock(name)
 	defer locker.Unlock(name)
 	var bind dbBind
 	coll := collection()
-	q := bson.M{"name": name, "units": unitHost}
+	q := bson.M{"name": name}
 	err := coll.Find(q).One(&bind)
 	if err != nil {
 		return err
 	}
-	if len(bind.Units) == 1 {
+	if bind.Calls == 1 {
 		coll.Remove(q)
 		return removeUser(name, name)
 	}
-	return coll.Update(q, bson.M{"$pull": bson.M{"units": unitHost}})
+	return coll.Update(q, bson.M{"$inc": bson.M{"calls": -1}})
 }
 
 func removeUser(db, user string) error {

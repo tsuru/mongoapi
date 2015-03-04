@@ -1,4 +1,4 @@
-// Copyright 2013 mongoapi authors. All rights reserved.
+// Copyright 2015 mongoapi authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -7,9 +7,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/bmizerany/pat"
 	"log"
 	"net/http"
+
+	"github.com/bmizerany/pat"
 )
 
 const version = "0.2.0"
