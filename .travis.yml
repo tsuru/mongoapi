@@ -6,7 +6,10 @@ before_install:
   - sudo apt-get update -qq
   - sudo apt-get install bzr mercurial -qq
 install:
-  - go get -d -t github.com/tsuru/mongoapi
+  - export PATH="$HOME/gopath/bin:$PATH"
+  - go get github.com/tools/godep
+  - go get -d -t
+  - godep restore
 script:
-  - go test github.com/tsuru/mongoapi
+  - go test
 services: mongodb
