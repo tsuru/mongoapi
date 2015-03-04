@@ -13,7 +13,7 @@ import (
 	"github.com/bmizerany/pat"
 )
 
-const version = "0.2.0"
+const version = "0.3"
 
 var printVersion bool
 var listen string
