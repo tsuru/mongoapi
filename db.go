@@ -15,7 +15,7 @@ var sess *mgo.Session
 func session() (s *mgo.Session) {
 	var connect = func() *mgo.Session {
 		var err error
-		uri := coalesceEnv("127.0.0.1:27017", "MONGODB_URI")
+		uri := coalesceEnv("MONGODB_URI", "127.0.0.1:27017")
 		session, err := mgo.Dial(uri)
 		if err != nil {
 			panic(err)
@@ -40,8 +40,13 @@ func session() (s *mgo.Session) {
 
 // coalesceEnv returns the value of the first environment variable in the list
 // that is not empty, or the default value.
-func coalesceEnv(defaultValue string, envs ...string) string {
-	for _, e := range envs {
+func coalesceEnv(envs ...string) string {
+	if len(envs) == 0 {
+		return ""
+	}
+	length := len(envs)
+	defaultValue := envs[length-1]
+	for _, e := range envs[:length-1] {
 		if value := os.Getenv(e); value != "" {
 			return value
 		}
@@ -50,7 +55,7 @@ func coalesceEnv(defaultValue string, envs ...string) string {
 }
 
 func dbName() string {
-	return coalesceEnv("mongoapi", "MONGOAPI_DBNAME")
+	return coalesceEnv("MONGOAPI_DBNAME", "mongoapi")
 }
 
 func collection() *mgo.Collection {

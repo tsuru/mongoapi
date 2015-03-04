@@ -25,7 +25,7 @@ var locker = multiLocker()
 
 func bind(name, appHost, unitHost string) (env, error) {
 	data := map[string]string{
-		"MONGO_URI":           coalesceEnv("127.0.0.1:27017", "MONGODB_PUBLIC_URI", "MONGODB_URI"),
+		"MONGO_URI":           coalesceEnv("MONGODB_PUBLIC_URI", "MONGODB_URI", "127.0.0.1:27017"),
 		"MONGO_USER":          name,
 		"MONGO_DATABASE_NAME": name,
 	}

@@ -42,23 +42,20 @@ func (s *S) TestSessionUsesEnvironmentVariable(c *check.C) {
 
 func (s *S) TestCoalesceEnv(c *check.C) {
 	var tests = []struct {
-		dvalue string
-		envs   []string
-		want   string
+		envs []string
+		want string
 	}{
 		{
-			dvalue: "default",
-			envs:   []string{"HOSAOJSWJMDKDKD", "88isosuukkd"},
-			want:   "default",
+			envs: []string{"HOSAOJSWJMDKDKD", "88isosuukkd", "default"},
+			want: "default",
 		},
 		{
-			dvalue: "",
-			envs:   []string{"HOME", "PATH"},
-			want:   os.Getenv("HOME"),
+			envs: []string{"HOME", "PATH", "default"},
+			want: os.Getenv("HOME"),
 		},
 	}
 	for _, t := range tests {
-		c.Check(coalesceEnv(t.dvalue, t.envs...), check.Equals, t.want)
+		c.Check(coalesceEnv(t.envs...), check.Equals, t.want)
 	}
 }
 
