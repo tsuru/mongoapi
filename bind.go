@@ -8,22 +8,20 @@ import (
 	"os"
 
 	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 // dbBind represents a bind stored in the database.
 type dbBind struct {
-	Name     string
-	AppHost  string
-	Password string
-	Calls    int
+	Name     string `bson:",omitempty"`
+	AppHost  string `bson:",omitempty"`
+	Password string `bson:",omitempty"`
 }
 
 type env map[string]string
 
 var locker = multiLocker()
 
-func bind(name, appHost, unitHost string) (env, error) {
+func bind(name, appHost string) (env, error) {
 	data := map[string]string{
 		"MONGO_URI":           coalesceEnv("MONGODB_PUBLIC_URI", "MONGODB_URI", "127.0.0.1:27017"),
 		"MONGO_USER":          name,
@@ -31,46 +29,29 @@ func bind(name, appHost, unitHost string) (env, error) {
 	}
 	locker.Lock(name)
 	defer locker.Unlock(name)
-	var bind dbBind
-	q := bson.M{"name": name, "apphost": appHost}
-	coll := collection()
-	if err := coll.Find(q).One(&bind); err == nil {
-		err = coll.Update(q, bson.M{"$inc": bson.M{"calls": 1}})
-		if err != nil {
-			return nil, err
-		}
-		data["MONGO_PASSWORD"] = bind.Password
-	} else if err != mgo.ErrNotFound {
+	bind, err := newBind(name, appHost)
+	if err != nil {
 		return nil, err
-	} else {
-		password, err := newBind(name, appHost, unitHost)
-		if err != nil {
-			return nil, err
-		}
-		data["MONGO_PASSWORD"] = password
 	}
+	data["MONGO_PASSWORD"] = bind.Password
 	if rs := os.Getenv("MONGODB_REPLICA_SET"); rs != "" {
 		data["MONGO_REPLICA_SET"] = rs
 	}
 	return env(data), nil
 }
 
-func newBind(name, appHost, unitHost string) (string, error) {
+func newBind(name, appHost string) (dbBind, error) {
 	password := newPassword()
 	err := addUser(name, name, password)
 	if err != nil {
-		return "", err
+		return dbBind{}, err
 	}
-	err = collection().Insert(dbBind{
-		AppHost:  appHost,
-		Name:     name,
-		Password: password,
-		Calls:    1,
-	})
+	item := dbBind{AppHost: appHost, Name: name, Password: password}
+	err = collection().Insert(item)
 	if err != nil {
-		return "", err
+		return dbBind{}, err
 	}
-	return password, nil
+	return item, nil
 }
 
 func addUser(db, username, password string) error {
@@ -83,21 +64,16 @@ func addUser(db, username, password string) error {
 	return database.UpsertUser(&user)
 }
 
-func unbind(name string) error {
+func unbind(name, appHost string) error {
 	locker.Lock(name)
 	defer locker.Unlock(name)
-	var bind dbBind
 	coll := collection()
-	q := bson.M{"name": name}
-	err := coll.Find(q).One(&bind)
+	bind := dbBind{Name: name, AppHost: appHost}
+	err := coll.Remove(bind)
 	if err != nil {
 		return err
 	}
-	if bind.Calls == 1 {
-		coll.Remove(q)
-		return removeUser(name, name)
-	}
-	return coll.Update(q, bson.M{"$inc": bson.M{"calls": -1}})
+	return removeUser(name, name)
 }
 
 func removeUser(db, user string) error {

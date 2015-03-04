@@ -25,8 +25,10 @@ func init() {
 func buildMux() http.Handler {
 	m := pat.New()
 	m.Post("/resources", http.HandlerFunc(Add))
-	m.Post("/resources/:name", Handler(Bind))
-	m.Del("/resources/:name/hostname/:hostname", Handler(Unbind))
+	m.Post("/resources/:name/bind-app", Handler(BindApp))
+	m.Del("/resources/:name/bind-app", Handler(UnbindApp))
+	m.Post("/resources/:name/bind", Handler(BindUnit))
+	m.Del("/resources/:name/bind", Handler(UnbindUnit))
 	m.Del("/resources/:name", Handler(Remove))
 	m.Get("/resources/:name/status", Handler(Status))
 	return m

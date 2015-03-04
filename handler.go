@@ -33,7 +33,7 @@ func Add(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func Bind(w http.ResponseWriter, r *http.Request) error {
+func BindApp(w http.ResponseWriter, r *http.Request) error {
 	name := r.URL.Query().Get(":name")
 	appHost := r.FormValue("app-host")
 	if appHost == "" {
@@ -41,13 +41,7 @@ func Bind(w http.ResponseWriter, r *http.Request) error {
 		fmt.Fprint(w, "Missing app-host")
 		return nil
 	}
-	unitHost := r.FormValue("unit-host")
-	if unitHost == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, "Missing unit-host")
-		return nil
-	}
-	env, err := bind(name, appHost, unitHost)
+	env, err := bind(name, appHost)
 	if err != nil {
 		return err
 	}
@@ -55,13 +49,22 @@ func Bind(w http.ResponseWriter, r *http.Request) error {
 	return json.NewEncoder(w).Encode(env)
 }
 
-func Unbind(w http.ResponseWriter, r *http.Request) error {
+func BindUnit(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func UnbindApp(w http.ResponseWriter, r *http.Request) error {
 	name := r.URL.Query().Get(":name")
-	err := unbind(name)
+	appHost := r.FormValue("app-host")
+	err := unbind(name, appHost)
 	if err == nil {
 		w.WriteHeader(http.StatusOK)
 	}
 	return err
+}
+
+func UnbindUnit(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }
 
 func Remove(w http.ResponseWriter, r *http.Request) error {
