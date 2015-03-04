@@ -5,6 +5,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"crypto/sha512"
 	"fmt"
 	"os"
 
@@ -51,11 +53,12 @@ func bind(name, appHost string) (env, error) {
 
 func newBind(name, appHost string) (dbBind, error) {
 	password := newPassword()
-	err := addUser(name, name, password)
+	username := name + newPassword()[:8]
+	err := addUser(name, username, password)
 	if err != nil {
 		return dbBind{}, err
 	}
-	item := dbBind{AppHost: appHost, User: name, Name: name, Password: password}
+	item := dbBind{AppHost: appHost, User: username, Name: name, Password: password}
 	err = collection().Insert(item)
 	if err != nil {
 		return dbBind{}, err
@@ -78,14 +81,26 @@ func unbind(name, appHost string) error {
 	defer locker.Unlock(name)
 	coll := collection()
 	bind := dbBind{Name: name, AppHost: appHost}
-	err := coll.Remove(bind)
+	err := coll.Find(bind).One(&bind)
 	if err != nil {
 		return err
 	}
-	return removeUser(name, name)
+	err = coll.Remove(bind)
+	if err != nil {
+		return err
+	}
+	return removeUser(name, bind.User)
 }
 
 func removeUser(db, user string) error {
 	database := session().DB(db)
 	return database.RemoveUser(user)
+}
+
+func newPassword() string {
+	var random [32]byte
+	rand.Read(random[:])
+	h := sha512.New()
+	h.Sum(random[:])
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

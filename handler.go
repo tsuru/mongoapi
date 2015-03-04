@@ -5,23 +5,12 @@
 package main
 
 import (
-	"crypto/rand"
-	"crypto/sha512"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"gopkg.in/mgo.v2/bson"
 )
-
-func newPassword() string {
-	var random [32]byte
-	rand.Read(random[:])
-	h := sha512.New()
-	h.Sum([]byte(bson.NewObjectId().Hex()))
-	h.Sum(random[:])
-	return fmt.Sprintf("%x", h.Sum(nil))
-}
 
 func Add(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")

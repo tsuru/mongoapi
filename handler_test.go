@@ -109,16 +109,16 @@ func (s *S) TestBindShouldReturnLocalhostWhenThePublicHostEnvIsNil(c *check.C) {
 	data := map[string]string{}
 	json.Unmarshal(result, &data)
 	c.Assert(data["MONGODB_HOSTS"], check.Equals, "127.0.0.1:27017")
-	c.Assert(data["MONGODB_USER"], check.Equals, "myapp")
 	c.Assert(data["MONGODB_DATABASE_NAME"], check.Equals, "myapp")
+	c.Assert(data["MONGODB_USER"], check.Not(check.HasLen), 0)
 	c.Assert(data["MONGODB_PASSWORD"], check.Not(check.HasLen), 0)
-	expectedString := fmt.Sprintf("mongodb://myapp:%s@127.0.0.1:27017/myapp", data["MONGODB_PASSWORD"])
+	expectedString := fmt.Sprintf("mongodb://%s:%s@127.0.0.1:27017/myapp", data["MONGODB_USER"], data["MONGODB_PASSWORD"])
 	c.Assert(data["MONGODB_CONNECTION_STRING"], check.Equals, expectedString)
 	coll := collection()
 	expected := dbBind{
 		AppHost:  "localhost",
 		Name:     "myapp",
-		User:     "myapp",
+		User:     data["MONGODB_USER"],
 		Password: data["MONGODB_PASSWORD"],
 	}
 	var bind dbBind
@@ -150,7 +150,7 @@ func (s *S) TestBindWithReplicaSet(c *check.C) {
 	err = json.NewDecoder(recorder.Body).Decode(&data)
 	c.Assert(err, check.IsNil)
 	c.Assert(data["MONGODB_REPLICA_SET"], check.Equals, "tsuru")
-	expectedString := fmt.Sprintf("mongodb://myapp:%s@%s/myapp?replicaSet=tsuru", data["MONGODB_PASSWORD"], publicHost)
+	expectedString := fmt.Sprintf("mongodb://%s:%s@%s/myapp?replicaSet=tsuru", data["MONGODB_USER"], data["MONGODB_PASSWORD"], publicHost)
 	c.Assert(data["MONGODB_CONNECTION_STRING"], check.Equals, expectedString)
 }
 
@@ -175,8 +175,8 @@ func (s *S) TestBind(c *check.C) {
 	data := map[string]string{}
 	json.Unmarshal(result, &data)
 	c.Assert(data["MONGODB_HOSTS"], check.Equals, publicHost)
-	c.Assert(data["MONGODB_USER"], check.Equals, "myapp")
 	c.Assert(data["MONGODB_DATABASE_NAME"], check.Equals, "myapp")
+	c.Assert(data["MONGODB_USER"], check.Not(check.HasLen), 0)
 	c.Assert(data["MONGODB_PASSWORD"], check.Not(check.HasLen), 0)
 	info := mgo.DialInfo{
 		Addrs:    []string{"localhost:27017"},
