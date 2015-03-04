@@ -40,34 +40,6 @@ func (s *S) SetUpTest(c *check.C) {
 	collection().RemoveAll(nil)
 }
 
-type InChecker struct{}
-
-func (c *InChecker) Info() *check.CheckerInfo {
-	return &check.CheckerInfo{Name: "In", Params: []string{"value", "list"}}
-}
-
-func (c *InChecker) Check(params []interface{}, names []string) (bool, string) {
-	if len(params) != 2 {
-		return false, "you should provide two parameters"
-	}
-	value, ok := params[0].(string)
-	if !ok {
-		return false, "first parameter should be a string"
-	}
-	list, ok := params[1].([]string)
-	if !ok {
-		return false, "second parameter should be a slice"
-	}
-	for _, item := range list {
-		if value == item {
-			return true, ""
-		}
-	}
-	return false, ""
-}
-
-var In check.Checker = &InChecker{}
-
 func (s *S) TestAdd(c *check.C) {
 	body := strings.NewReader("name=something")
 	request, err := http.NewRequest("POST", "/resources", body)
@@ -228,19 +200,6 @@ func (s *S) TestUnbind(c *check.C) {
 	}
 	_, err = mgo.DialWithInfo(&info)
 	c.Assert(err, check.NotNil)
-}
-
-func (s *S) TestRemoveShouldRemoveTheDatabase(c *check.C) {
-	name := "myapp"
-	database := session().DB(name)
-	database.AddUser(name, "", false)
-	request, err := http.NewRequest("DELETE", "/resources/myapp", nil)
-	c.Assert(err, check.IsNil)
-	recorder := httptest.NewRecorder()
-	s.muxer.ServeHTTP(recorder, request)
-	c.Assert(recorder.Code, check.Equals, http.StatusOK)
-	databases, err := session().DatabaseNames()
-	c.Assert(name, check.Not(In), databases)
 }
 
 func (s *S) TestBindUnit(c *check.C) {
