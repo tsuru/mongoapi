@@ -1,10 +1,12 @@
 language: go
-go: tip
+go:
+  - 1.4
+  - tip
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install bzr mercurial -qq
 install:
-  - go get github.com/globocom/mongoapi launchpad.net/gocheck
+  - go get -d -t github.com/tsuru/mongoapi
 script:
-  - go test github.com/globocom/mongoapi
+  - go test github.com/tsuru/mongoapi
 services: mongodb
