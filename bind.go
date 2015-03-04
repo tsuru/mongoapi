@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"gopkg.in/mgo.v2"
@@ -13,6 +14,7 @@ import (
 // dbBind represents a bind stored in the database.
 type dbBind struct {
 	Name     string `bson:",omitempty"`
+	User     string `bson:",omitempty"`
 	AppHost  string `bson:",omitempty"`
 	Password string `bson:",omitempty"`
 }
@@ -22,21 +24,28 @@ type env map[string]string
 var locker = multiLocker()
 
 func bind(name, appHost string) (env, error) {
-	data := map[string]string{
-		"MONGO_URI":           coalesceEnv("MONGODB_PUBLIC_URI", "MONGODB_URI", "127.0.0.1:27017"),
-		"MONGO_USER":          name,
-		"MONGO_DATABASE_NAME": name,
-	}
 	locker.Lock(name)
 	defer locker.Unlock(name)
 	bind, err := newBind(name, appHost)
 	if err != nil {
 		return nil, err
 	}
-	data["MONGO_PASSWORD"] = bind.Password
-	if rs := os.Getenv("MONGODB_REPLICA_SET"); rs != "" {
-		data["MONGO_REPLICA_SET"] = rs
+	hosts := coalesceEnv("MONGODB_PUBLIC_URI", "MONGODB_URI", "127.0.0.1:27017")
+	data := map[string]string{
+		"MONGODB_HOSTS":         hosts,
+		"MONGODB_USER":          bind.User,
+		"MONGODB_PASSWORD":      bind.Password,
+		"MONGODB_DATABASE_NAME": name,
 	}
+	var connStringSuffix string
+	if rs := os.Getenv("MONGODB_REPLICA_SET"); rs != "" {
+		data["MONGODB_REPLICA_SET"] = rs
+		connStringSuffix = "?replicaSet=" + rs
+	}
+	data["MONGODB_CONNECTION_STRING"] = fmt.Sprintf(
+		"mongodb://%s:%s@%s/%s%s",
+		bind.User, bind.Password, hosts, name, connStringSuffix,
+	)
 	return env(data), nil
 }
 
@@ -46,7 +55,7 @@ func newBind(name, appHost string) (dbBind, error) {
 	if err != nil {
 		return dbBind{}, err
 	}
-	item := dbBind{AppHost: appHost, Name: name, Password: password}
+	item := dbBind{AppHost: appHost, User: name, Name: name, Password: password}
 	err = collection().Insert(item)
 	if err != nil {
 		return dbBind{}, err

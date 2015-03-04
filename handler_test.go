@@ -108,15 +108,18 @@ func (s *S) TestBindShouldReturnLocalhostWhenThePublicHostEnvIsNil(c *check.C) {
 	c.Assert(err, check.IsNil)
 	data := map[string]string{}
 	json.Unmarshal(result, &data)
-	c.Assert(data["MONGO_URI"], check.Equals, "127.0.0.1:27017")
-	c.Assert(data["MONGO_USER"], check.Equals, "myapp")
-	c.Assert(data["MONGO_DATABASE_NAME"], check.Equals, "myapp")
-	c.Assert(data["MONGO_PASSWORD"], check.Not(check.HasLen), 0)
+	c.Assert(data["MONGODB_HOSTS"], check.Equals, "127.0.0.1:27017")
+	c.Assert(data["MONGODB_USER"], check.Equals, "myapp")
+	c.Assert(data["MONGODB_DATABASE_NAME"], check.Equals, "myapp")
+	c.Assert(data["MONGODB_PASSWORD"], check.Not(check.HasLen), 0)
+	expectedString := fmt.Sprintf("mongodb://myapp:%s@127.0.0.1:27017/myapp", data["MONGODB_PASSWORD"])
+	c.Assert(data["MONGODB_CONNECTION_STRING"], check.Equals, expectedString)
 	coll := collection()
 	expected := dbBind{
 		AppHost:  "localhost",
 		Name:     "myapp",
-		Password: data["MONGO_PASSWORD"],
+		User:     "myapp",
+		Password: data["MONGODB_PASSWORD"],
 	}
 	var bind dbBind
 	q := bson.M{"name": "myapp"}
@@ -146,7 +149,9 @@ func (s *S) TestBindWithReplicaSet(c *check.C) {
 	var data map[string]string
 	err = json.NewDecoder(recorder.Body).Decode(&data)
 	c.Assert(err, check.IsNil)
-	c.Assert(data["MONGO_REPLICA_SET"], check.Equals, "tsuru")
+	c.Assert(data["MONGODB_REPLICA_SET"], check.Equals, "tsuru")
+	expectedString := fmt.Sprintf("mongodb://myapp:%s@%s/myapp?replicaSet=tsuru", data["MONGODB_PASSWORD"], publicHost)
+	c.Assert(data["MONGODB_CONNECTION_STRING"], check.Equals, expectedString)
 }
 
 func (s *S) TestBind(c *check.C) {
@@ -169,15 +174,15 @@ func (s *S) TestBind(c *check.C) {
 	c.Assert(err, check.IsNil)
 	data := map[string]string{}
 	json.Unmarshal(result, &data)
-	c.Assert(data["MONGO_URI"], check.Equals, publicHost)
-	c.Assert(data["MONGO_USER"], check.Equals, "myapp")
-	c.Assert(data["MONGO_DATABASE_NAME"], check.Equals, "myapp")
-	c.Assert(data["MONGO_PASSWORD"], check.Not(check.HasLen), 0)
+	c.Assert(data["MONGODB_HOSTS"], check.Equals, publicHost)
+	c.Assert(data["MONGODB_USER"], check.Equals, "myapp")
+	c.Assert(data["MONGODB_DATABASE_NAME"], check.Equals, "myapp")
+	c.Assert(data["MONGODB_PASSWORD"], check.Not(check.HasLen), 0)
 	info := mgo.DialInfo{
 		Addrs:    []string{"localhost:27017"},
-		Database: data["MONGO_DATABASE_NAME"],
-		Username: data["MONGO_USER"],
-		Password: data["MONGO_PASSWORD"],
+		Database: data["MONGODB_DATABASE_NAME"],
+		Username: data["MONGODB_USER"],
+		Password: data["MONGODB_PASSWORD"],
 	}
 	session, err := mgo.DialWithInfo(&info)
 	c.Assert(err, check.IsNil)
@@ -215,9 +220,9 @@ func (s *S) TestUnbind(c *check.C) {
 	c.Assert(recorder.Code, check.Equals, http.StatusOK)
 	info := mgo.DialInfo{
 		Addrs:    []string{"localhost:27017"},
-		Database: env["MONGO_DATABASE"],
-		Username: env["MONGO_USER"],
-		Password: env["MONGO_PASSWORD"],
+		Database: env["MONGODB_DATABASE"],
+		Username: env["MONGODB_USER"],
+		Password: env["MONGODB_PASSWORD"],
 		Timeout:  1e9,
 		FailFast: true,
 	}

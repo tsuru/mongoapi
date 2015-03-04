@@ -1,10 +1,14 @@
-mongoapi
+MongoDB
 
 This service is used for MongoDB binding.
 
 Once binded, you will be able to use the following environment variables:
 
-    - MONGO_URI
-    - MONGO_USER
-    - MONGO_PASSWORD
-    - MONGO_DATABASE_NAME
+    - MONGODB_HOSTS: the host(s) to connect, in the format
+      host1:27017,host2:27017,host3:27017. May contain only one host;
+    - MONGODB_USER: the username to use when connecting;
+    - MONGODB_PASSWORD: the password to use when connecting;
+    - MONGODB_DATABASE_NAME: the name of the database that the service created
+      for you;
+    - MONGODB_CONNECTION_STRING: the standard connection string, that can also be
+      used for connection. For more details, see http://goo.gl/nVFUmz.
