@@ -16,9 +16,11 @@ import (
 const version = "0.2.0"
 
 var printVersion bool
+var listen string
 
 func init() {
 	flag.BoolVar(&printVersion, "v", false, "Print version and exit")
+	flag.StringVar(&listen, "bind", "0.0.0.0:3030", "Bind the service on this port")
 	flag.Parse()
 }
 
@@ -39,6 +41,5 @@ func main() {
 		fmt.Printf("mongoapi version %s", version)
 		return
 	}
-	listen := coalesceEnv("0.0.0.0:3333", "MONGODB_API_LISTEN")
 	log.Fatal(http.ListenAndServe(listen, buildMux()))
 }
