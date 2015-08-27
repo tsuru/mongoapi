@@ -1,0 +1,4 @@
+hooks:
+  build:
+    - go get -d
+    - go build -o mongoapi
