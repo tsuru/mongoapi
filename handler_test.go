@@ -183,7 +183,7 @@ func (s *S) TestUnbind(c *check.C) {
 		database := session().DB(name)
 		database.DropDatabase()
 	}()
-	body := strings.NewReader("app-host=" + name)
+	body := strings.NewReader("app-host=localhost")
 	request, err := http.NewRequest("DELETE", "/resources/myapp/bind-app", body)
 	c.Assert(err, check.IsNil)
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
