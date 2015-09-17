@@ -101,6 +101,5 @@ func newPassword() string {
 	var random [32]byte
 	rand.Read(random[:])
 	h := sha512.New()
-	h.Sum(random[:])
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return fmt.Sprintf("%x", h.Sum(random[:]))
 }

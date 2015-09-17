@@ -43,6 +43,7 @@ func BindUnit(w http.ResponseWriter, r *http.Request) error {
 }
 
 func UnbindApp(w http.ResponseWriter, r *http.Request) error {
+	r.Method = "POST"
 	name := r.URL.Query().Get(":name")
 	appHost := r.FormValue("app-host")
 	err := unbind(name, appHost)
