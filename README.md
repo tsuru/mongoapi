@@ -5,7 +5,7 @@ mongoapi
 
 MongoDB service API for [tsuru PaaS](https://tsuru.io).
 
-##Installation and configuration
+## Installation and configuration
 
 This API is ready for being deployed as a tsuru application. It depends on the
 following environment variables:
